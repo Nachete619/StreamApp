@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { User, Video, Calendar, Edit2, Save, X, Upload } from 'lucide-react'
-import { StreamCard } from '@/components/StreamCard'
+import { User, Video, Calendar, Edit2, Save, X, Upload, Heart, Share2, Settings, Globe, Twitter, Youtube, Eye } from 'lucide-react'
+import { EnhancedStreamCard } from '@/components/EnhancedStreamCard'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/client'
@@ -18,7 +18,10 @@ interface Profile {
   avatar_url: string | null
   bio: string | null
   created_at: string
+  cover_url?: string | null
 }
+
+type TabType = 'home' | 'videos' | 'clips' | 'about'
 
 export default function ProfilePage() {
   const params = useParams()
@@ -27,7 +30,7 @@ export default function ProfilePage() {
   const supabase = createClient()
   const id = params.id as string
   
-  const [activeTab, setActiveTab] = useState<'view' | 'edit'>('view')
+  const [activeTab, setActiveTab] = useState<TabType>('home')
   const [profile, setProfile] = useState<Profile | null>(null)
   const [streams, setStreams] = useState<any[]>([])
   const [videos, setVideos] = useState<any[]>([])
@@ -37,15 +40,14 @@ export default function ProfilePage() {
     username: '',
     bio: '',
     avatar_url: '',
+    cover_url: '',
+    twitter: '',
+    youtube: '',
+    website: '',
   })
-  const [uploading, setUploading] = useState(false)
   const isOwnProfile = currentUser?.id === id
 
-  useEffect(() => {
-    fetchData()
-  }, [id])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
@@ -60,6 +62,10 @@ export default function ProfilePage() {
         username: profileData.username,
         bio: profileData.bio || '',
         avatar_url: profileData.avatar_url || '',
+        cover_url: profileData.cover_url || '',
+        twitter: '',
+        youtube: '',
+        website: '',
       })
 
       // Fetch streams
@@ -94,7 +100,11 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, supabase])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const handleSave = async () => {
     if (!isOwnProfile) return
@@ -106,6 +116,7 @@ export default function ProfilePage() {
           username: editForm.username,
           bio: editForm.bio,
           avatar_url: editForm.avatar_url,
+          cover_url: editForm.cover_url,
         })
         .eq('id', id)
 
@@ -121,21 +132,12 @@ export default function ProfilePage() {
     }
   }
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Note: You'll need to set up Supabase Storage bucket for avatars
-    // For now, we'll just show a placeholder
-    toast.info('Subida de avatar próximamente. Usa una URL por ahora.')
-  }
-
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="text-center py-16 text-dark-400">
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
           <div className="w-12 h-12 border-4 border-accent-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p>Cargando perfil...</p>
+          <p className="text-dark-400">Cargando perfil...</p>
         </div>
       </div>
     )
@@ -143,8 +145,8 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="text-center py-16 text-dark-400">
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-dark-400">
           <p className="text-lg">Perfil no encontrado</p>
         </div>
       </div>
@@ -157,95 +159,131 @@ export default function ProfilePage() {
   })
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Profile Header */}
-      <div className="card p-8 mb-8">
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+    <div className="min-h-screen bg-dark-950">
+      {/* Banner/Cover Section */}
+      <div className="relative h-64 md:h-80 bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 overflow-hidden">
+        {profile.cover_url ? (
+          <Image
+            src={profile.cover_url}
+            alt="Cover"
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-accent-600/20 via-accent-500/10 to-dark-900" />
+        )}
+        
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/50 to-transparent" />
+        
+        {/* Edit Cover Button */}
+        {isOwnProfile && (
+          <button
+            onClick={() => setEditing(!editing)}
+            className="absolute top-4 right-4 px-4 py-2 bg-dark-900/80 backdrop-blur-sm text-dark-200 rounded-lg hover:bg-dark-800 transition-colors flex items-center gap-2"
+          >
+            <Edit2 className="w-4 h-4" />
+            {editing ? 'Cancelar' : 'Editar Perfil'}
+          </button>
+        )}
+      </div>
+
+      {/* Profile Info Section */}
+      <div className="relative -mt-20 px-6 pb-8">
+        <div className="max-w-6xl mx-auto">
           {/* Avatar */}
-          <div className="relative group">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center overflow-hidden border-4 border-dark-800 flex-shrink-0">
+          <div className="relative inline-block mb-4">
+            <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center overflow-hidden border-4 border-dark-900 shadow-xl">
               {profile.avatar_url ? (
                 <Image
                   src={profile.avatar_url}
                   alt={profile.username}
-                  width={128}
-                  height={128}
-                  className="object-cover"
+                  width={160}
+                  height={160}
+                  className="object-cover w-full h-full"
                 />
               ) : (
-                <User className="w-16 h-16 text-white" />
+                <User className="w-16 h-16 md:w-20 md:h-20 text-white" />
               )}
             </div>
             {isOwnProfile && editing && (
-              <label className="absolute inset-0 rounded-full bg-dark-900/80 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                <Upload className="w-6 h-6 text-accent-500" />
+              <label className="absolute bottom-0 right-0 w-10 h-10 bg-accent-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-accent-500 transition-colors">
+                <Upload className="w-5 h-5 text-white" />
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={handleAvatarUpload}
                   className="hidden"
+                  onChange={(e) => {
+                    // Handle upload logic here
+                    toast.info('Subida de imagen próximamente. Usa una URL por ahora.')
+                  }}
                 />
               </label>
             )}
           </div>
 
-          {/* Info */}
-          <div className="flex-1">
+          {/* Profile Details */}
+          <div className="card-premium p-6 mb-6">
             {editing ? (
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  value={editForm.username}
-                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                  className="input text-3xl font-bold"
-                  placeholder="Nombre de usuario"
-                />
-                <textarea
-                  value={editForm.bio}
-                  onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                  className="input min-h-[100px]"
-                  placeholder="Descripción"
-                  maxLength={500}
-                />
-                <input
-                  type="url"
-                  value={editForm.avatar_url}
-                  onChange={(e) => setEditForm({ ...editForm, avatar_url: e.target.value })}
-                  className="input"
-                  placeholder="URL del avatar"
-                />
-              </div>
-            ) : (
-              <>
-                <h1 className="text-3xl font-bold text-dark-50 mb-2">{profile.username}</h1>
-                {profile.bio && (
-                  <p className="text-dark-300 mb-4">{profile.bio}</p>
-                )}
-                <div className="flex items-center gap-6 text-sm text-dark-400">
-                  <span className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Se unió hace {createdAt}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <Video className="w-4 h-4" />
-                    {streams?.length || 0} streams
-                  </span>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
+                    Nombre de Usuario
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.username}
+                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                    className="input"
+                    placeholder="Nombre de usuario"
+                  />
                 </div>
-              </>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3">
-            {isOwnProfile ? (
-              editing ? (
-                <>
+                <div>
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
+                    Descripción
+                  </label>
+                  <textarea
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                    className="input min-h-[120px]"
+                    placeholder="Cuéntanos sobre ti..."
+                    maxLength={500}
+                  />
+                  <p className="text-xs text-dark-500 mt-1">
+                    {editForm.bio.length}/500 caracteres
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
+                    URL del Avatar
+                  </label>
+                  <input
+                    type="url"
+                    value={editForm.avatar_url}
+                    onChange={(e) => setEditForm({ ...editForm, avatar_url: e.target.value })}
+                    className="input"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-dark-300 mb-2">
+                    URL del Banner
+                  </label>
+                  <input
+                    type="url"
+                    value={editForm.cover_url}
+                    onChange={(e) => setEditForm({ ...editForm, cover_url: e.target.value })}
+                    className="input"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="flex gap-3">
                   <button
                     onClick={handleSave}
                     className="btn btn-primary flex items-center gap-2"
                   >
                     <Save className="w-4 h-4" />
-                    Guardar
+                    Guardar Cambios
                   </button>
                   <button
                     onClick={() => {
@@ -254,204 +292,203 @@ export default function ProfilePage() {
                         username: profile.username,
                         bio: profile.bio || '',
                         avatar_url: profile.avatar_url || '',
+                        cover_url: profile.cover_url || '',
+                        twitter: '',
+                        youtube: '',
+                        website: '',
                       })
                     }}
-                    className="btn btn-secondary flex items-center gap-2"
+                    className="btn btn-secondary"
                   >
-                    <X className="w-4 h-4" />
                     Cancelar
                   </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href={`/stream/${profile.username}`}
-                    className="btn btn-primary"
-                  >
-                    Ver Stream
-                  </Link>
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="btn btn-secondary flex items-center gap-2"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Editar
-                  </button>
-                </>
-              )
+                </div>
+              </div>
             ) : (
-              <>
-                <Link
-                  href={`/stream/${profile.username}`}
-                  className="btn btn-primary"
-                >
-                  Ver Stream
-                </Link>
-                <button className="btn btn-secondary">
-                  Seguir
-                </button>
-              </>
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                <div className="flex-1">
+                  <h1 className="text-3xl md:text-4xl font-bold text-dark-50 mb-2">
+                    {profile.username}
+                  </h1>
+                  {profile.bio && (
+                    <p className="text-dark-300 mb-4 max-w-2xl">{profile.bio}</p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-6 text-sm text-dark-400">
+                    <span className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Se unió hace {createdAt}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Video className="w-4 h-4" />
+                      {streams?.length || 0} streams
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      {videos?.length || 0} videos
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {!isOwnProfile && (
+                    <>
+                      <button className="btn btn-primary flex items-center gap-2">
+                        <Heart className="w-4 h-4" />
+                        Seguir
+                      </button>
+                      <button className="btn btn-secondary p-2">
+                        <Share2 className="w-5 h-5" />
+                      </button>
+                    </>
+                  )}
+                  {isOwnProfile && (
+                    <Link
+                      href={`/stream/${profile.username}`}
+                      className="btn btn-primary"
+                    >
+                      Ver mi Stream
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 mb-6 border-b border-dark-800 overflow-x-auto scrollbar-hide">
+            {[
+              { id: 'home' as TabType, label: 'Inicio', count: streams.length },
+              { id: 'videos' as TabType, label: 'Vídeos', count: videos.length },
+              { id: 'clips' as TabType, label: 'Clips', count: 0 },
+              { id: 'about' as TabType, label: 'Acerca de', count: null },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-3 font-semibold text-sm transition-all relative ${
+                  activeTab === tab.id
+                    ? 'text-accent-500'
+                    : 'text-dark-400 hover:text-dark-200'
+                }`}
+              >
+                {tab.label}
+                {tab.count !== null && tab.count > 0 && (
+                  <span className="ml-2 text-xs bg-dark-800 px-2 py-0.5 rounded-full">
+                    {tab.count}
+                  </span>
+                )}
+                {activeTab === tab.id && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent-500 to-accent-600" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div>
+            {activeTab === 'home' && (
+              <div>
+                {streams && streams.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {streams.map((stream: any) => (
+                      <EnhancedStreamCard key={stream.id} stream={stream} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="card-premium p-16 text-center">
+                    <Video className="w-16 h-16 text-dark-600 mx-auto mb-4" />
+                    <p className="text-lg font-semibold text-dark-300 mb-2">
+                      No hay streams todavía
+                    </p>
+                    <p className="text-dark-500">
+                      {isOwnProfile ? 'Crea tu primer stream para comenzar' : 'Este usuario aún no ha transmitido'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'videos' && (
+              <div>
+                {videos && videos.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {videos.map((video) => (
+                      <Link
+                        key={video.id}
+                        href={video.playback_url}
+                        target="_blank"
+                        className="card-premium overflow-hidden group"
+                      >
+                        <div className="relative aspect-video bg-dark-800">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Video className="w-12 h-12 text-dark-600 group-hover:text-accent-500 transition-colors" />
+                          </div>
+                          <div className="absolute bottom-2 right-2 bg-dark-900/80 text-white text-xs px-2 py-1 rounded">
+                            VOD
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <p className="text-sm text-dark-300 truncate mb-1">
+                            {new Date(video.created_at).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-dark-500">
+                            {formatDistanceToNow(new Date(video.created_at), {
+                              addSuffix: true,
+                              locale: es,
+                            })}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="card-premium p-16 text-center">
+                    <Video className="w-16 h-16 text-dark-600 mx-auto mb-4" />
+                    <p className="text-lg font-semibold text-dark-300 mb-2">
+                      No hay videos guardados
+                    </p>
+                    <p className="text-dark-500">
+                      Los videos de tus streams aparecerán aquí
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'clips' && (
+              <div className="card-premium p-16 text-center">
+                <Video className="w-16 h-16 text-dark-600 mx-auto mb-4" />
+                <p className="text-lg font-semibold text-dark-300 mb-2">
+                  Próximamente
+                </p>
+                <p className="text-dark-500">
+                  Los clips estarán disponibles pronto
+                </p>
+              </div>
+            )}
+
+            {activeTab === 'about' && (
+              <div className="card-premium p-8">
+                <h3 className="text-xl font-bold text-dark-50 mb-6">Acerca de</h3>
+                {profile.bio ? (
+                  <p className="text-dark-300 whitespace-pre-line">{profile.bio}</p>
+                ) : (
+                  <p className="text-dark-500 italic">
+                    {isOwnProfile ? 'Añade una descripción sobre ti en la edición del perfil' : 'Este usuario no ha añadido una descripción'}
+                  </p>
+                )}
+                
+                {/* Social Links */}
+                <div className="mt-8 pt-8 border-t border-dark-800">
+                  <h4 className="text-sm font-semibold text-dark-400 uppercase mb-4">Enlaces</h4>
+                  <div className="flex flex-wrap gap-4">
+                    {/* Social links would go here */}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Tabs */}
-      {isOwnProfile && (
-        <div className="flex gap-4 mb-8 border-b border-dark-800">
-          <button
-            onClick={() => setActiveTab('view')}
-            className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'view'
-                ? 'text-accent-500 border-b-2 border-accent-500'
-                : 'text-dark-400 hover:text-dark-200'
-            }`}
-          >
-            Contenido
-          </button>
-          <button
-            onClick={() => setActiveTab('edit')}
-            className={`px-6 py-3 font-medium transition-colors ${
-              activeTab === 'edit'
-                ? 'text-accent-500 border-b-2 border-accent-500'
-                : 'text-dark-400 hover:text-dark-200'
-            }`}
-          >
-            Editar Perfil
-          </button>
-        </div>
-      )}
-
-      {/* Content based on tab */}
-      {activeTab === 'view' || !isOwnProfile ? (
-        <>
-          {/* Streams Section */}
-          {streams && streams.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-dark-50 mb-6">Streams</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {streams.map((stream: any) => (
-                  <StreamCard key={stream.id} stream={stream} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Videos Section */}
-          {videos && videos.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-bold text-dark-50 mb-6">Videos (VODs)</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {videos.map((video) => (
-                  <Link
-                    key={video.id}
-                    href={video.playback_url}
-                    target="_blank"
-                    className="card-hover overflow-hidden"
-                  >
-                    <div className="relative aspect-video bg-dark-800">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Video className="w-12 h-12 text-dark-600" />
-                      </div>
-                      <div className="absolute bottom-2 right-2 bg-dark-900/80 text-white text-xs px-2 py-1 rounded">
-                        VOD
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <p className="text-sm text-dark-300 truncate mb-1">
-                        {new Date(video.created_at).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-dark-500">
-                        {formatDistanceToNow(new Date(video.created_at), {
-                          addSuffix: true,
-                          locale: es,
-                        })}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {(!streams || streams.length === 0) && (!videos || videos.length === 0) && (
-            <div className="text-center py-16 text-dark-400">
-              <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">Este perfil aún no tiene contenido</p>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="card p-8">
-          <h2 className="text-2xl font-bold text-dark-50 mb-6">Editar Perfil</h2>
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Nombre de Usuario
-              </label>
-              <input
-                type="text"
-                value={editForm.username}
-                onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                className="input"
-                placeholder="Nombre de usuario"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                Descripción
-              </label>
-              <textarea
-                value={editForm.bio}
-                onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                className="input min-h-[120px]"
-                placeholder="Cuéntanos sobre ti..."
-                maxLength={500}
-              />
-              <p className="text-xs text-dark-500 mt-1">
-                {editForm.bio.length}/500 caracteres
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-dark-300 mb-2">
-                URL del Avatar
-              </label>
-              <input
-                type="url"
-                value={editForm.avatar_url}
-                onChange={(e) => setEditForm({ ...editForm, avatar_url: e.target.value })}
-                className="input"
-                placeholder="https://..."
-              />
-              <p className="text-xs text-dark-500 mt-1">
-                Ingresa la URL de tu imagen de perfil
-              </p>
-            </div>
-            <div className="flex gap-4">
-              <button
-                onClick={handleSave}
-                className="btn btn-primary flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Guardar Cambios
-              </button>
-              <button
-                onClick={() => {
-                  setEditForm({
-                    username: profile.username,
-                    bio: profile.bio || '',
-                    avatar_url: profile.avatar_url || '',
-                  })
-                }}
-                className="btn btn-secondary"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

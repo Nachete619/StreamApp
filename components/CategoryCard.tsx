@@ -2,18 +2,29 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { LucideIcon } from 'lucide-react'
+import { Gamepad2, Music, Code, Film, TrendingUp, LucideIcon } from 'lucide-react'
 
 interface CategoryCardProps {
   name: string
   slug: string
-  icon?: LucideIcon
+  iconName?: string
   image?: string
   viewers?: number
   streams?: number
 }
 
-export function CategoryCard({ name, slug, icon: Icon, image, viewers, streams }: CategoryCardProps) {
+const iconMap: Record<string, LucideIcon> = {
+  gaming: Gamepad2,
+  music: Music,
+  coding: Code,
+  programacion: Code,
+  irl: Film,
+  trending: TrendingUp,
+}
+
+export function CategoryCard({ name, slug, iconName, image, viewers, streams }: CategoryCardProps) {
+  const Icon = iconName ? iconMap[iconName.toLowerCase()] : iconMap[slug.toLowerCase()] || Gamepad2
+
   return (
     <Link href={`/explore?category=${slug}`} className="group">
       <div className="relative h-48 rounded-xl overflow-hidden card-premium border-2 border-transparent hover:border-accent-600/50 transition-all duration-300">
@@ -35,11 +46,9 @@ export function CategoryCard({ name, slug, icon: Icon, image, viewers, streams }
         {/* Content */}
         <div className="relative h-full flex flex-col justify-between p-6">
           <div className="flex items-start justify-between">
-            {Icon && (
-              <div className="w-12 h-12 bg-accent-600/20 backdrop-blur-sm rounded-lg flex items-center justify-center group-hover:bg-accent-600/30 transition-colors">
-                <Icon className="w-6 h-6 text-accent-500" />
-              </div>
-            )}
+            <div className="w-12 h-12 bg-accent-600/20 backdrop-blur-sm rounded-lg flex items-center justify-center group-hover:bg-accent-600/30 transition-colors">
+              <Icon className="w-6 h-6 text-accent-500" />
+            </div>
           </div>
           
           <div>

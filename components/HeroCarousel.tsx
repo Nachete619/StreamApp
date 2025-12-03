@@ -47,7 +47,7 @@ export function HeroCarousel({ streams }: HeroCarouselProps) {
   })
 
   return (
-    <div className="relative h-[500px] rounded-lg overflow-hidden bg-dark-900 border border-dark-800">
+    <div className="relative h-[500px] rounded-xl overflow-hidden card-premium border-2 border-dark-800/50">
       {/* Background Image */}
       <Link href={`/stream/${currentStream.profiles.username}`}>
         <div className="absolute inset-0">
@@ -69,7 +69,7 @@ export function HeroCarousel({ streams }: HeroCarouselProps) {
           {/* Avatar */}
           <Link
             href={`/stream/${currentStream.profiles.username}`}
-            className="flex-shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-accent-500 to-primary-500 flex items-center justify-center overflow-hidden border-2 border-dark-800"
+            className="flex-shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center overflow-hidden border-2 border-dark-800"
           >
             {currentStream.profiles.avatar_url ? (
               <Image

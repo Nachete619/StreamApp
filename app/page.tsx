@@ -4,7 +4,7 @@ import { EnhancedStreamCard } from "@/components/EnhancedStreamCard";
 import { CategoryCard } from "@/components/CategoryCard";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import Link from "next/link";
-import { Gamepad2, Music, Code, TrendingUp, ArrowRight } from "lucide-react";
+import { TrendingUp, ArrowRight } from "lucide-react";
 
 export default async function Home() {
   const supabase = await createServerClient();
@@ -52,9 +52,9 @@ export default async function Home() {
 
   // Top categories (hardcoded for now, can be dynamic later)
   const topCategories = [
-    { name: 'Gaming', slug: 'gaming', icon: Gamepad2, viewers: 15234, streams: 234 },
-    { name: 'Música', slug: 'music', icon: Music, viewers: 8932, streams: 156 },
-    { name: 'Programación', slug: 'coding', icon: Code, viewers: 12345, streams: 189 },
+    { name: 'Gaming', slug: 'gaming', iconName: 'gaming', viewers: 15234, streams: 234 },
+    { name: 'Música', slug: 'music', iconName: 'music', viewers: 8932, streams: 156 },
+    { name: 'Programación', slug: 'coding', iconName: 'coding', viewers: 12345, streams: 189 },
   ];
 
   return (
@@ -88,7 +88,7 @@ export default async function Home() {
                 key={category.slug}
                 name={category.name}
                 slug={category.slug}
-                icon={category.icon}
+                iconName={category.iconName}
                 viewers={category.viewers}
                 streams={category.streams}
               />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from './Providers'
 import { Send, User } from 'lucide-react'
@@ -32,37 +32,7 @@ export function LiveChat({ streamId }: LiveChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    // Fetch initial messages
-    fetchMessages()
-
-    // Subscribe to new messages
-    const channel = supabase
-      .channel(`stream:${streamId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `stream_id=eq.${streamId}`,
-        },
-        (payload) => {
-          fetchMessages()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [streamId, supabase])
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('messages')
@@ -88,7 +58,37 @@ export function LiveChat({ streamId }: LiveChatProps) {
       toast.error('Error al cargar mensajes')
       setLoading(false)
     }
-  }
+  }, [streamId, supabase])
+
+  useEffect(() => {
+    // Fetch initial messages
+    fetchMessages()
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel(`stream:${streamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `stream_id=eq.${streamId}`,
+        },
+        () => {
+          fetchMessages()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [streamId, supabase, fetchMessages])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -163,7 +163,7 @@ export function LiveChat({ streamId }: LiveChatProps) {
             return (
               <div key={message.id} className="flex gap-3 animate-fade-in">
                 {/* Avatar */}
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-accent-500 to-primary-500 flex items-center justify-center overflow-hidden">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center overflow-hidden">
                   {message.profiles.avatar_url ? (
                     <Image
                       src={message.profiles.avatar_url}
