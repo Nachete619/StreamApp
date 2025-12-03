@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { livepeer } from '@/lib/livepeer'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
