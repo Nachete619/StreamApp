@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/Providers'
 import { createClient } from '@/lib/supabase/client'
@@ -55,7 +55,7 @@ export default function DashboardPage() {
       fetchStream()
       fetchVideos()
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, fetchStream, fetchVideos])
 
   useEffect(() => {
     if (!stream?.is_live) return
@@ -74,12 +74,14 @@ export default function DashboardPage() {
     return () => clearInterval(interval)
   }, [stream?.is_live, stream])
 
-  const fetchStream = async () => {
+  const fetchStream = useCallback(async () => {
+    if (!user?.id) return
+    
     try {
       const { data, error } = await supabase
         .from('streams')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -91,14 +93,16 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id, supabase])
 
-  const fetchVideos = async () => {
+  const fetchVideos = useCallback(async () => {
+    if (!user?.id) return
+    
     try {
       const { data, error } = await supabase
         .from('videos')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -107,7 +111,7 @@ export default function DashboardPage() {
     } catch (error: any) {
       console.error('Error fetching videos:', error)
     }
-  }
+  }, [user?.id, supabase])
 
   const calculateUptime = (startTime: string) => {
     const start = new Date(startTime).getTime()
@@ -391,7 +395,7 @@ export default function DashboardPage() {
                       <li>Copia el RTMP Ingest URL y Stream Key</li>
                       <li>En OBS: Configuración → Stream → Servicio: Personalizado</li>
                       <li>Pega la URL y el Stream Key</li>
-                      <li>¡Haz clic en "Iniciar Transmisión"!</li>
+                      <li>¡Haz clic en &quot;Iniciar Transmisión&quot;!</li>
                     </ol>
                   </div>
                 </div>
