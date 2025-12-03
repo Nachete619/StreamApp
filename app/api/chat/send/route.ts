@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { Database } from '@/lib/supabase/database.types'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,11 +20,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { stream_id, content } = body
+    const { stream_id, content } = body as { stream_id: string; content: string }
 
     if (!stream_id || !content) {
       return NextResponse.json(
         { error: 'stream_id and content are required' },
+        { status: 400 }
+      )
+    }
+
+    if (typeof stream_id !== 'string' || typeof content !== 'string') {
+      return NextResponse.json(
+        { error: 'Invalid request format' },
         { status: 400 }
       )
     }
@@ -36,13 +44,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert message
+    const messageInsert: Database['public']['Tables']['messages']['Insert'] = {
+      user_id: user.id,
+      stream_id,
+      content: content.trim(),
+    }
+
     const { data: message, error } = await supabase
       .from('messages')
-      .insert({
-        user_id: user.id,
-        stream_id,
-        content: content.trim(),
-      })
+      .insert(messageInsert)
       .select(`
         *,
         profiles:user_id (
