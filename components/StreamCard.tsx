@@ -29,63 +29,50 @@ export function StreamCard({ stream }: StreamCardProps) {
 
   return (
     <Link href={`/stream/${stream.profiles.username}`} className="group">
-      <div className="card-hover overflow-hidden">
+      <div className="relative overflow-hidden rounded-lg bg-dark-900 hover:opacity-90 transition-opacity">
         {/* Thumbnail */}
         <div className="relative aspect-video bg-dark-800 overflow-hidden">
-          {stream.is_live && (
-            <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-accent-600 text-white px-2 py-1 rounded text-xs font-semibold shadow-lg shadow-accent-600/50">
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              EN VIVO
-            </div>
-          )}
           <Image
             src={thumbnailUrl}
             alt={stream.title}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-cover"
             unoptimized
           />
+          
+          {/* LIVE Badge - Top Left */}
+          {stream.is_live && (
+            <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">
+              <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              LIVE
+            </div>
+          )}
+          
+          {/* Viewer Count - Bottom Left */}
+          <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[11px] font-semibold text-white">
+            <Eye className="w-3 h-3" />
+            <span>0</span>
+          </div>
+
           {!stream.is_live && (
             <div className="absolute inset-0 bg-dark-900/50 flex items-center justify-center">
-              <span className="text-dark-400 text-sm">Offline</span>
+              <span className="text-gray-400 text-xs">Offline</span>
             </div>
           )}
         </div>
 
-        {/* Info */}
-        <div className="p-4">
-          <div className="flex items-start gap-3">
-            {/* Avatar */}
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center overflow-hidden">
-              {stream.profiles.avatar_url ? (
-                <Image
-                  src={stream.profiles.avatar_url}
-                  alt={stream.profiles.username}
-                  width={40}
-                  height={40}
-                  className="object-cover"
-                />
-              ) : (
-                <User className="w-5 h-5 text-white" />
-              )}
-            </div>
-
-            {/* Details */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-dark-50 truncate group-hover:text-accent-500 transition-colors">
-                {stream.title}
-              </h3>
-              <p className="text-sm text-dark-400 truncate">
-                {stream.profiles.username}
-              </p>
-              <div className="flex items-center gap-3 mt-1 text-xs text-dark-500">
-                <span className="flex items-center gap-1">
-                  <Eye className="w-3 h-3" />
-                  0
-                </span>
-                <span>{timeAgo}</span>
-              </div>
-            </div>
+        {/* Stream Info - Below Thumbnail */}
+        <div className="p-3">
+          <h3 className="font-semibold text-white text-sm truncate mb-1 group-hover:text-accent-400 transition-colors">
+            {stream.title}
+          </h3>
+          <p className="text-xs text-gray-400 truncate mb-2">
+            {stream.profiles.username}
+          </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] text-gray-500">
+              {timeAgo}
+            </span>
           </div>
         </div>
       </div>

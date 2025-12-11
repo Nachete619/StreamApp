@@ -42,30 +42,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Insert message
-    const { data: message, error } = await (supabase
+    // Insert message (without join to avoid foreign key error)
+    const { data: messageData, error: insertError } = await (supabase
       .from('messages') as any)
       .insert({
         user_id: user.id,
         stream_id,
         content: content.trim(),
       })
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          username,
-          avatar_url
-        )
-      `)
+      .select('*')
       .single()
 
-    if (error) {
-      console.error('Database error:', error)
+    if (insertError) {
+      console.error('Database error:', insertError)
       return NextResponse.json(
         { error: 'Failed to send message' },
         { status: 500 }
       )
+    }
+
+    // Fetch profile separately
+    const { data: profile } = await (supabase
+      .from('profiles') as any)
+      .select('id, username, avatar_url')
+      .eq('id', user.id)
+      .single()
+
+    // Combine message with profile
+    const message = {
+      ...messageData,
+      profiles: profile || null
     }
 
     return NextResponse.json({ message })

@@ -34,24 +34,38 @@ export function LiveChat({ streamId }: LiveChatProps) {
 
   const fetchMessages = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch messages without join to avoid foreign key error
+      const { data: messagesData, error } = await supabase
         .from('messages')
-        .select(`
-          id,
-          content,
-          created_at,
-          profiles:user_id (
-            username,
-            avatar_url
-          )
-        `)
+        .select('id, content, created_at, user_id')
         .eq('stream_id', streamId)
         .order('created_at', { ascending: true })
         .limit(100)
 
       if (error) throw error
 
-      setMessages(data as Message[] || [])
+      // Fetch profiles for all message users
+      if (messagesData && messagesData.length > 0) {
+        const userIds = [...new Set(messagesData.map((m: any) => m.user_id))]
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url')
+          .in('id', userIds)
+
+        // Map profiles to messages
+        const profilesMap = new Map((profilesData || []).map((p: any) => [p.id, p]))
+        const messagesWithProfiles = messagesData.map((message: any) => ({
+          id: message.id,
+          content: message.content,
+          created_at: message.created_at,
+          profiles: profilesMap.get(message.user_id) || { username: 'Usuario', avatar_url: null }
+        }))
+
+        setMessages(messagesWithProfiles as Message[])
+      } else {
+        setMessages([])
+      }
+      
       setLoading(false)
     } catch (error: any) {
       console.error('Error fetching messages:', error)
