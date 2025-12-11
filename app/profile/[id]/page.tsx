@@ -215,7 +215,7 @@ export default function ProfilePage() {
                   className="hidden"
                   onChange={(e) => {
                     // Handle upload logic here
-                    toast.info('Subida de imagen próximamente. Usa una URL por ahora.')
+                    toast('Subida de imagen próximamente. Usa una URL por ahora.')
                   }}
                 />
               </label>
