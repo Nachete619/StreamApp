@@ -51,7 +51,7 @@ export function EnhancedStreamCard({ stream, category, viewers = 0 }: EnhancedSt
           )}
           
           {/* Viewer Count - Bottom Left */}
-          <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[11px] font-semibold text-white">
+          <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1 bg-black/80 px-2 py-1 rounded text-[11px] font-semibold text-white">
             <Eye className="w-3 h-3" />
             <span>{viewers.toLocaleString()}</span>
           </div>
