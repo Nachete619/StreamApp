@@ -19,51 +19,57 @@ export default async function Home() {
     redirect('/landing');
   }
 
-  // Fetch live streams
-  const { data: streams, error: streamsError } = await (supabase
+  // Fetch live streams (without join to avoid foreign key error)
+  const { data: streamsData, error: streamsError } = await (supabase
     .from("streams") as any)
-    .select(`
-      *,
-      profiles:user_id (
-        id,
-        username,
-        avatar_url
-      )
-    `)
+    .select("*")
     .eq("is_live", true)
     .order("created_at", { ascending: false })
     .limit(20);
 
+  // Fetch profiles for all stream users
+  let streams: any[] = []
+  if (streamsData && streamsData.length > 0) {
+    const userIds = [...new Set(streamsData.map((s: any) => s.user_id))]
+    const { data: profilesData } = await (supabase
+      .from("profiles") as any)
+      .select("id, username, avatar_url")
+      .in("id", userIds)
+
+    // Map profiles to streams
+    const profilesMap = new Map((profilesData || []).map((p: any) => [p.id, p]))
+    streams = streamsData.map((stream: any) => ({
+      ...stream,
+      profiles: profilesMap.get(stream.user_id) || null
+    }))
+  }
+
   if (streamsError) {
     console.error('Error fetching streams:', streamsError)
-  } else {
-    console.log('Streams fetched:', streams?.length || 0, 'streams found')
-    if (streams && streams.length > 0) {
-      console.log('Sample stream:', {
-        id: streams[0].id,
-        title: streams[0].title,
-        is_live: streams[0].is_live,
-        hasProfile: !!streams[0].profiles,
-        profileUsername: streams[0].profiles?.username
-      })
-    }
   }
 
   // Fetch featured streams for carousel
-  const { data: featuredStreams, error: featuredError } = await (supabase
+  const { data: featuredStreamsData, error: featuredError } = await (supabase
     .from("streams") as any)
-    .select(`
-      *,
-      profiles:user_id (
-        id,
-        username,
-        avatar_url,
-        bio
-      )
-    `)
+    .select("*")
     .eq("is_live", true)
     .order("created_at", { ascending: false })
     .limit(5);
+
+  let featuredStreams: any[] = []
+  if (featuredStreamsData && featuredStreamsData.length > 0) {
+    const userIds = [...new Set(featuredStreamsData.map((s: any) => s.user_id))]
+    const { data: profilesData } = await (supabase
+      .from("profiles") as any)
+      .select("id, username, avatar_url, bio")
+      .in("id", userIds)
+
+    const profilesMap = new Map((profilesData || []).map((p: any) => [p.id, p]))
+    featuredStreams = featuredStreamsData.map((stream: any) => ({
+      ...stream,
+      profiles: profilesMap.get(stream.user_id) || null
+    }))
+  }
 
   if (featuredError) {
     console.error('Error fetching featured streams:', featuredError)

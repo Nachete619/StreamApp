@@ -13,29 +13,33 @@ export default async function ExplorePage({ searchParams }: PageProps) {
   const supabase = await createServerClient()
   const { category } = searchParams
 
-  let query = (supabase
+  // Fetch live streams (without join to avoid foreign key error)
+  const { data: streamsData, error: streamsError } = await (supabase
     .from('streams') as any)
-    .select(`
-      *,
-      profiles:user_id (
-        id,
-        username,
-        avatar_url
-      )
-    `)
+    .select('*')
     .eq('is_live', true)
-
-  // In the future, you can filter by category here
-  // For now, we'll just show all live streams
-
-  const { data: streams, error: streamsError } = await query
     .order('created_at', { ascending: false })
     .limit(50)
 
+  // Fetch profiles for all stream users
+  let streams: any[] = []
+  if (streamsData && streamsData.length > 0) {
+    const userIds = [...new Set(streamsData.map((s: any) => s.user_id))]
+    const { data: profilesData } = await (supabase
+      .from('profiles') as any)
+      .select('id, username, avatar_url')
+      .in('id', userIds)
+
+    // Map profiles to streams
+    const profilesMap = new Map((profilesData || []).map((p: any) => [p.id, p]))
+    streams = streamsData.map((stream: any) => ({
+      ...stream,
+      profiles: profilesMap.get(stream.user_id) || null
+    }))
+  }
+
   if (streamsError) {
     console.error('Error fetching streams in explore:', streamsError)
-  } else {
-    console.log('Explore - Streams fetched:', streams?.length || 0, 'streams found')
   }
 
   return (
