@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         // Update stream status to live
         await supabase
           .from('streams')
-          .update({ is_live: true })
+          .update({ is_live: true } as any)
           .eq('playback_id', stream.playbackId)
 
         break
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         // Update stream status to offline
         await supabase
           .from('streams')
-          .update({ is_live: false })
+          .update({ is_live: false } as any)
           .eq('playback_id', stream.playbackId)
         break
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         // Update stream status to offline
         await supabase
           .from('streams')
-          .update({ is_live: false })
+          .update({ is_live: false } as any)
           .eq('playback_id', stream.playbackId)
         break
 
@@ -71,11 +71,11 @@ export async function POST(request: NextRequest) {
             await supabase
               .from('videos')
               .insert({
-                stream_id: streamData.id,
-                user_id: streamData.user_id,
+                stream_id: (streamData as any).id,
+                user_id: (streamData as any).user_id,
                 playback_url: playbackUrl,
                 duration: null, // You can calculate this later if needed
-              })
+              } as any)
           }
         }
         break
