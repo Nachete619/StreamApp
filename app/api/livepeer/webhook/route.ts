@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const supabase = await createServerClient()
+    
+    // Create admin client with service role key to bypass RLS for deleting messages
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
 
     // Verify webhook signature if needed (add this for production)
     // const signature = request.headers.get('livepeer-signature')
@@ -63,16 +76,17 @@ export async function POST(request: NextRequest) {
         if (streamFetchError || !streamData) {
           console.error('Error fetching stream for chat reset:', streamFetchError)
         } else {
-          // Delete all messages for this stream to reset chat
-          const { error: deleteError } = await (supabase
+          // Delete all messages for this stream to reset chat using admin client (bypasses RLS)
+          const { error: deleteError, count } = await (supabaseAdmin
             .from('messages') as any)
             .delete()
             .eq('stream_id', streamData.id)
+            .select('*', { count: 'exact', head: true })
 
           if (deleteError) {
             console.error('Error deleting messages on stream start:', deleteError)
           } else {
-            console.log('Chat messages cleared for stream:', streamData.id)
+            console.log('Chat messages cleared for stream:', streamData.id, 'Messages deleted:', count || 0)
           }
         }
 
