@@ -19,8 +19,17 @@ if (typeof window === 'undefined') {
   const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
                       process.env.NEXT_PHASE === 'phase-development-build'
   
-  if (!isBuildTime && !apiKey) {
-    // Only warn in runtime, not during build
-    console.warn('⚠️ LIVEPEER_API_KEY is not set. Please configure it in Vercel environment variables.')
+  if (!isBuildTime) {
+    if (!apiKey || apiKey === 'build-time-dummy-key-for-nextjs-build') {
+      // Only warn in runtime, not during build
+      console.error('⚠️ ERROR: LIVEPEER_API_KEY is not set or is using dummy key.')
+      console.error('⚠️ Please configure LIVEPEER_API_KEY in your .env.local file or environment variables.')
+      console.error('⚠️ This will cause 400 Bad Request errors when trying to create streams.')
+    } else {
+      // Validate API key format (Livepeer API keys typically start with specific prefixes)
+      if (apiKey.length < 20) {
+        console.warn('⚠️ WARNING: LIVEPEER_API_KEY seems too short. Please verify it is correct.')
+      }
+    }
   }
 }
