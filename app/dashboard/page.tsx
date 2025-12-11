@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { Copy, Check, Video, Radio, ExternalLink, Users, Clock, TrendingUp, Settings, Eye, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 import { LiveChat } from '@/components/LiveChat'
+import { HLSPlayer } from '@/components/HLSPlayer'
 
 interface Stream {
   id: string
@@ -104,6 +105,18 @@ export default function DashboardPage() {
       fetchVideos()
     }
   }, [user, authLoading, router, fetchStream, fetchVideos])
+
+  // Poll for stream status updates when stream exists
+  useEffect(() => {
+    if (!stream) return
+
+    // Poll every 10 seconds to check if stream status changed
+    const interval = setInterval(() => {
+      fetchStream()
+    }, 10000)
+
+    return () => clearInterval(interval)
+  }, [stream, fetchStream])
 
   useEffect(() => {
     if (!stream?.is_live) return
@@ -304,15 +317,13 @@ export default function DashboardPage() {
               <div className="card-premium overflow-hidden">
                 <div className="aspect-video bg-dark-800 relative">
                   {stream.is_live && stream.playback_id ? (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="w-16 h-16 bg-accent-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Video className="w-8 h-8 text-accent-500" />
-                        </div>
-                        <p className="text-dark-400">Vista previa del stream</p>
-                        <p className="text-xs text-dark-500 mt-1">El reproductor aparecerá aquí cuando esté transmitiendo</p>
+                    <>
+                      <HLSPlayer playbackId={stream.playback_id} autoPlay={true} />
+                      <div className="absolute top-4 left-4 bg-accent-600 text-white px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg z-10">
+                        <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        EN VIVO
                       </div>
-                    </div>
+                    </>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-dark-800 to-dark-900">
                       <div className="text-center">
@@ -322,13 +333,6 @@ export default function DashboardPage() {
                           Inicia tu transmisión para ver la vista previa
                         </p>
                       </div>
-                    </div>
-                  )}
-                  
-                  {stream.is_live && (
-                    <div className="absolute top-4 left-4 bg-accent-600 text-white px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg">
-                      <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                      EN VIVO
                     </div>
                   )}
                 </div>
