@@ -43,13 +43,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert message
-    const { data: message, error } = await supabase
-      .from('messages')
+    const { data: message, error } = await (supabase
+      .from('messages') as any)
       .insert({
         user_id: user.id,
         stream_id,
         content: content.trim(),
-      } as any)
+      })
       .select(`
         *,
         profiles:user_id (

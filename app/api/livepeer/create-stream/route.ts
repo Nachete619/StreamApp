@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
     const ingestUrl = `rtmp://rtmp.livepeer.com/live`
 
     // Save stream to Supabase
-    const { data: streamData, error: dbError } = await supabase
-      .from('streams')
+    const { data: streamData, error: dbError } = await (supabase
+      .from('streams') as any)
       .insert({
         user_id: user.id,
         title,
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         ingest_url: ingestUrl,
         playback_id: stream.playbackId || '',
         is_live: false,
-      } as any)
+      })
       .select()
       .single()
 

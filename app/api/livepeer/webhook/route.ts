@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
       case 'recording.ready':
         // When recording is ready, save as VOD
         // Get stream from database
-        const { data: streamData } = await supabase
-          .from('streams')
+        const { data: streamData } = await (supabase
+          .from('streams') as any)
           .select('id, user_id, playback_id')
           .eq('playback_id', stream.playbackId)
           .single()
@@ -60,10 +60,10 @@ export async function POST(request: NextRequest) {
           const playbackUrl = `https://playback.livepeer.studio/recordings/${stream.playbackId}/index.m3u8`
 
           // Check if video already exists to avoid duplicates
-          const { data: existingVideo } = await supabase
-            .from('videos')
+          const { data: existingVideo } = await (supabase
+            .from('videos') as any)
             .select('id')
-            .eq('stream_id', streamData.id)
+            .eq('stream_id', (streamData as any).id)
             .single()
 
           if (!existingVideo) {

@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     const streamId = searchParams.get('streamId')
 
-    let query = supabase
-      .from('streams')
+    let query = (supabase
+      .from('streams') as any)
       .select(`
         *,
         profiles:user_id (
@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('id', streamId)
     } else if (username) {
       // Get stream by username
-      const { data: profile } = await supabase
-        .from('profiles')
+      const { data: profile } = await (supabase
+        .from('profiles') as any)
         .select('id')
         .eq('username', username)
         .single()
