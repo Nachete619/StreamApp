@@ -22,26 +22,26 @@ export async function POST(request: NextRequest) {
     switch (type) {
       case 'stream.started':
         // Update stream status to live
-        await supabase
-          .from('streams')
-          .update({ is_live: true } as any)
+        await (supabase
+          .from('streams') as any)
+          .update({ is_live: true })
           .eq('playback_id', stream.playbackId)
 
         break
 
       case 'stream.idle':
         // Update stream status to offline
-        await supabase
-          .from('streams')
-          .update({ is_live: false } as any)
+        await (supabase
+          .from('streams') as any)
+          .update({ is_live: false })
           .eq('playback_id', stream.playbackId)
         break
 
       case 'stream.ended':
         // Update stream status to offline
-        await supabase
-          .from('streams')
-          .update({ is_live: false } as any)
+        await (supabase
+          .from('streams') as any)
+          .update({ is_live: false })
           .eq('playback_id', stream.playbackId)
         break
 
@@ -68,14 +68,14 @@ export async function POST(request: NextRequest) {
 
           if (!existingVideo) {
             // Save video (VOD) to database
-            await supabase
-              .from('videos')
+            await (supabase
+              .from('videos') as any)
               .insert({
                 stream_id: (streamData as any).id,
                 user_id: (streamData as any).user_id,
                 playback_url: playbackUrl,
                 duration: null, // You can calculate this later if needed
-              } as any)
+              })
           }
         }
         break
