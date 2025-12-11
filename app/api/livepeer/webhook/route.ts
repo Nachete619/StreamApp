@@ -52,6 +52,31 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('Updating stream to live:', playbackId)
+        
+        // First, get the stream to get its ID
+        const { data: streamData, error: streamFetchError } = await (supabase
+          .from('streams') as any)
+          .select('id')
+          .eq('playback_id', playbackId)
+          .single()
+
+        if (streamFetchError || !streamData) {
+          console.error('Error fetching stream for chat reset:', streamFetchError)
+        } else {
+          // Delete all messages for this stream to reset chat
+          const { error: deleteError } = await (supabase
+            .from('messages') as any)
+            .delete()
+            .eq('stream_id', streamData.id)
+
+          if (deleteError) {
+            console.error('Error deleting messages on stream start:', deleteError)
+          } else {
+            console.log('Chat messages cleared for stream:', streamData.id)
+          }
+        }
+
+        // Update stream to live
         const { data: updatedData, error: updateError, count } = await (supabase
           .from('streams') as any)
           .update({ is_live: true })

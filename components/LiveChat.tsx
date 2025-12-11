@@ -115,8 +115,13 @@ export function LiveChat({ streamId, isLive }: LiveChatProps) {
   useEffect(() => {
     // If stream just went live (was offline, now is live), clear messages
     if (isLive && previousIsLiveRef.current === false) {
+      // Clear messages immediately (they should be deleted from DB by webhook)
       setMessages([])
-      fetchMessages()
+      setLoading(true)
+      // Wait a bit for webhook to process, then fetch (should be empty)
+      setTimeout(() => {
+        fetchMessages()
+      }, 1000)
     }
     previousIsLiveRef.current = isLive
   }, [isLive, fetchMessages])
