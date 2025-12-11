@@ -83,7 +83,8 @@ export function LiveChat({ streamId }: LiveChatProps) {
     fetchMessages()
 
     // Subscribe to new messages
-    const channel = supabaseRef.current
+    const supabase = supabaseRef.current
+    const channel = supabase
       .channel(`stream:${streamId}`)
       .on(
         'postgres_changes',
@@ -100,7 +101,7 @@ export function LiveChat({ streamId }: LiveChatProps) {
       .subscribe()
 
     return () => {
-      supabaseRef.current.removeChannel(channel)
+      supabase.removeChannel(channel)
     }
   }, [streamId, fetchMessages])
 
