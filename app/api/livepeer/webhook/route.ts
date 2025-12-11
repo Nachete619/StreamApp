@@ -52,15 +52,24 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('Updating stream to live:', playbackId)
-        const { error: updateError } = await (supabase
+        const { data: updatedData, error: updateError, count } = await (supabase
           .from('streams') as any)
           .update({ is_live: true })
           .eq('playback_id', playbackId)
+          .select()
 
         if (updateError) {
           console.error('Error updating stream.started:', updateError)
         } else {
-          console.log('Stream updated to live successfully')
+          console.log('Stream updated to live successfully:', {
+            playbackId,
+            rowsUpdated: updatedData?.length || 0,
+            updatedData
+          })
+          
+          if (!updatedData || updatedData.length === 0) {
+            console.warn(`⚠️ No stream found with playback_id: ${playbackId}. Stream may not exist in database.`)
+          }
         }
         break
       }
@@ -88,15 +97,23 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('Updating stream to idle:', playbackId)
-        const { error: updateError } = await (supabase
+        const { data: updatedData, error: updateError } = await (supabase
           .from('streams') as any)
           .update({ is_live: false })
           .eq('playback_id', playbackId)
+          .select()
 
         if (updateError) {
           console.error('Error updating stream.idle:', updateError)
         } else {
-          console.log('Stream updated to idle successfully')
+          console.log('Stream updated to idle successfully:', {
+            playbackId,
+            rowsUpdated: updatedData?.length || 0
+          })
+          
+          if (!updatedData || updatedData.length === 0) {
+            console.warn(`⚠️ No stream found with playback_id: ${playbackId}. Stream may not exist in database.`)
+          }
         }
         break
       }
