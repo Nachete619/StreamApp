@@ -9,23 +9,38 @@ export async function POST(request: NextRequest) {
     // Verify webhook signature if needed (add this for production)
     // const signature = request.headers.get('livepeer-signature')
     
-    console.log('Webhook received:', { type: body.type, hasStream: !!body.stream, hasSession: !!body.session })
+    // Livepeer sends 'event' not 'type', and the structure is different
+    const eventType = body.event || body.type
     
-    const { type } = body
+    console.log('Webhook received:', { 
+      event: eventType, 
+      hasStream: !!body.stream, 
+      hasPayload: !!body.payload,
+      hasSession: !!(body.payload?.session || body.session)
+    })
 
-    if (!type) {
-      console.error('Webhook missing type:', body)
+    if (!eventType) {
+      console.error('Webhook missing event/type:', body)
       return NextResponse.json(
-        { error: 'Invalid webhook payload: missing type' },
+        { error: 'Invalid webhook payload: missing event' },
         { status: 400 }
       )
     }
 
     // Handle different webhook types
-    switch (type) {
+    switch (eventType) {
       case 'stream.started': {
-        // For stream.started, the entire body IS the stream object
-        const stream = body
+        // For stream.started, the stream is in body.stream
+        const stream = body.stream
+
+        if (!stream) {
+          console.error('stream.started missing stream:', body)
+          return NextResponse.json(
+            { error: 'Invalid webhook payload: missing stream' },
+            { status: 400 }
+          )
+        }
+
         const playbackId = stream.playbackId
 
         if (!playbackId) {
@@ -44,13 +59,24 @@ export async function POST(request: NextRequest) {
 
         if (updateError) {
           console.error('Error updating stream.started:', updateError)
+        } else {
+          console.log('Stream updated to live successfully')
         }
         break
       }
 
       case 'stream.idle': {
-        // For stream.idle, the entire body IS the stream object
-        const stream = body
+        // For stream.idle, the stream is in body.stream
+        const stream = body.stream
+
+        if (!stream) {
+          console.error('stream.idle missing stream:', body)
+          return NextResponse.json(
+            { error: 'Invalid webhook payload: missing stream' },
+            { status: 400 }
+          )
+        }
+
         const playbackId = stream.playbackId
 
         if (!playbackId) {
@@ -69,13 +95,24 @@ export async function POST(request: NextRequest) {
 
         if (updateError) {
           console.error('Error updating stream.idle:', updateError)
+        } else {
+          console.log('Stream updated to idle successfully')
         }
         break
       }
 
       case 'stream.ended': {
-        // For stream.ended, the entire body IS the stream object
-        const stream = body
+        // For stream.ended, the stream is in body.stream
+        const stream = body.stream
+
+        if (!stream) {
+          console.error('stream.ended missing stream:', body)
+          return NextResponse.json(
+            { error: 'Invalid webhook payload: missing stream' },
+            { status: 400 }
+          )
+        }
+
         const playbackId = stream.playbackId
 
         if (!playbackId) {
@@ -94,16 +131,28 @@ export async function POST(request: NextRequest) {
 
         if (updateError) {
           console.error('Error updating stream.ended:', updateError)
+        } else {
+          console.log('Stream updated to ended successfully')
         }
         break
       }
 
       case 'recording.ready': {
-        // For recording.ready, the playbackId is in session.playbackId
-        const session = body.session
+        // For recording.ready, the data is in body.payload
+        const payload = body.payload
+
+        if (!payload) {
+          console.error('recording.ready missing payload:', body)
+          return NextResponse.json(
+            { error: 'Invalid webhook payload: missing payload' },
+            { status: 400 }
+          )
+        }
+
+        const session = payload.session
 
         if (!session) {
-          console.error('recording.ready missing session:', body)
+          console.error('recording.ready missing session:', payload)
           return NextResponse.json(
             { error: 'Invalid webhook payload: missing session' },
             { status: 400 }
@@ -111,8 +160,8 @@ export async function POST(request: NextRequest) {
         }
 
         const playbackId = session.playbackId
-        const recordingUrl = body.recordingUrl || session.recordingUrl
-        const mp4Url = body.mp4Url || session.mp4Url
+        const recordingUrl = payload.recordingUrl || session.recordingUrl
+        const mp4Url = payload.mp4Url || session.mp4Url
 
         if (!playbackId) {
           console.error('recording.ready missing playbackId:', session)
@@ -177,7 +226,7 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log('Unhandled webhook type:', type)
+        console.log('Unhandled webhook event type:', eventType)
     }
 
     return NextResponse.json({ received: true })
