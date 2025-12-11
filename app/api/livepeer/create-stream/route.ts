@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
     }
 
     const streamKey = streamKeyResponse.stream.streamKey
-    const ingestUrl = streamKeyResponse.stream.rtmpIngestUrl || `rtmp://rtmp.livepeer.com/live`
+    // RTMP ingest URL is constant for Livepeer Studio
+    const ingestUrl = `rtmp://rtmp.livepeer.com/live`
 
     // Save stream to Supabase
     const { data: streamData, error: dbError } = await supabase
