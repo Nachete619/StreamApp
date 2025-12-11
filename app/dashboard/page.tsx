@@ -45,34 +45,14 @@ export default function DashboardPage() {
     uptime: '0:00',
   })
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/auth/login')
-      return
-    }
-
-    if (user) {
-      fetchStream()
-      fetchVideos()
-    }
-  }, [user, authLoading, router, fetchStream, fetchVideos])
-
-  useEffect(() => {
-    if (!stream?.is_live) return
-    
-    // Update stats every 5 seconds if live
-    const interval = setInterval(() => {
-      if (stream) {
-        setStats({
-          viewers: Math.floor(Math.random() * 100) + 10,
-          followers: 42,
-          uptime: calculateUptime(stream.created_at),
-        })
-      }
-    }, 5000)
-    
-    return () => clearInterval(interval)
-  }, [stream?.is_live, stream])
+  const calculateUptime = (startTime: string) => {
+    const start = new Date(startTime).getTime()
+    const now = Date.now()
+    const diff = now - start
+    const hours = Math.floor(diff / 3600000)
+    const minutes = Math.floor((diff % 3600000) / 60000)
+    return `${hours}:${minutes.toString().padStart(2, '0')}`
+  }
 
   const fetchStream = useCallback(async () => {
     if (!user?.id) return
@@ -113,14 +93,34 @@ export default function DashboardPage() {
     }
   }, [user?.id, supabase])
 
-  const calculateUptime = (startTime: string) => {
-    const start = new Date(startTime).getTime()
-    const now = Date.now()
-    const diff = now - start
-    const hours = Math.floor(diff / 3600000)
-    const minutes = Math.floor((diff % 3600000) / 60000)
-    return `${hours}:${minutes.toString().padStart(2, '0')}`
-  }
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login')
+      return
+    }
+
+    if (user) {
+      fetchStream()
+      fetchVideos()
+    }
+  }, [user, authLoading, router, fetchStream, fetchVideos])
+
+  useEffect(() => {
+    if (!stream?.is_live) return
+    
+    // Update stats every 5 seconds if live
+    const interval = setInterval(() => {
+      if (stream) {
+        setStats({
+          viewers: Math.floor(Math.random() * 100) + 10,
+          followers: 42,
+          uptime: calculateUptime(stream.created_at),
+        })
+      }
+    }, 5000)
+    
+    return () => clearInterval(interval)
+  }, [stream?.is_live, stream])
 
   const handleCreateStream = async (e: React.FormEvent) => {
     e.preventDefault()
