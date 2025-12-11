@@ -17,8 +17,8 @@ export default async function StreamPage({ params }: PageProps) {
   const { username } = params
 
   // Get profile by username
-  const { data: profile } = await supabase
-    .from('profiles')
+  const { data: profile } = await (supabase
+    .from('profiles') as any)
     .select('*')
     .eq('username', username)
     .single()
@@ -28,19 +28,19 @@ export default async function StreamPage({ params }: PageProps) {
   }
 
   // Get stream
-  const { data: stream } = await supabase
-    .from('streams')
+  const { data: stream } = await (supabase
+    .from('streams') as any)
     .select('*')
-    .eq('user_id', profile.id)
+    .eq('user_id', (profile as any).id)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
   // Get videos
-  const { data: videos } = await supabase
-    .from('videos')
+  const { data: videos } = await (supabase
+    .from('videos') as any)
     .select('*')
-    .eq('user_id', profile.id)
+    .eq('user_id', (profile as any).id)
     .order('created_at', { ascending: false })
     .limit(6)
 

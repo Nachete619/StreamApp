@@ -18,8 +18,8 @@ export default async function FollowingPage() {
   // Fetch streams from followed channels
   // Note: You'll need to implement a follows table for this to work properly
   // For now, we'll show a placeholder
-  const { data: streams } = await supabase
-    .from("streams")
+  const { data: streams } = await (supabase
+    .from("streams") as any)
     .select(`
       *,
       profiles:user_id (

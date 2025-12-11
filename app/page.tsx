@@ -20,8 +20,8 @@ export default async function Home() {
   }
 
   // Fetch live streams
-  const { data: streams } = await supabase
-    .from("streams")
+  const { data: streams } = await (supabase
+    .from("streams") as any)
     .select(`
       *,
       profiles:user_id (
@@ -35,8 +35,8 @@ export default async function Home() {
     .limit(20);
 
   // Fetch featured streams for carousel
-  const { data: featuredStreams } = await supabase
-    .from("streams")
+  const { data: featuredStreams } = await (supabase
+    .from("streams") as any)
     .select(`
       *,
       profiles:user_id (

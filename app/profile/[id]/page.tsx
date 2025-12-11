@@ -50,8 +50,8 @@ export default function ProfilePage() {
   const fetchData = useCallback(async () => {
     try {
       // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
+      const { data: profileData, error: profileError } = await (supabase
+        .from('profiles') as any)
         .select('*')
         .eq('id', id)
         .single()
@@ -69,8 +69,8 @@ export default function ProfilePage() {
       })
 
       // Fetch streams
-      const { data: streamsData } = await supabase
-        .from('streams')
+      const { data: streamsData } = await (supabase
+        .from('streams') as any)
         .select(`
           *,
           profiles:user_id (
@@ -86,8 +86,8 @@ export default function ProfilePage() {
       setStreams(streamsData || [])
 
       // Fetch videos
-      const { data: videosData } = await supabase
-        .from('videos')
+      const { data: videosData } = await (supabase
+        .from('videos') as any)
         .select('*')
         .eq('user_id', id)
         .order('created_at', { ascending: false })
@@ -110,8 +110,8 @@ export default function ProfilePage() {
     if (!isOwnProfile) return
 
     try {
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await (supabase
+        .from('profiles') as any)
         .update({
           username: editForm.username,
           bio: editForm.bio,

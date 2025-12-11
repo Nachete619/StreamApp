@@ -13,8 +13,8 @@ export default async function ExplorePage({ searchParams }: PageProps) {
   const supabase = await createServerClient()
   const { category } = searchParams
 
-  let query = supabase
-    .from('streams')
+  let query = (supabase
+    .from('streams') as any)
     .select(`
       *,
       profiles:user_id (

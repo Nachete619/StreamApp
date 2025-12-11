@@ -78,8 +78,8 @@ export default function DashboardPage() {
     if (!user?.id) return
     
     try {
-      const { data, error } = await supabase
-        .from('streams')
+      const { data, error } = await (supabase
+        .from('streams') as any)
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -99,8 +99,8 @@ export default function DashboardPage() {
     if (!user?.id) return
     
     try {
-      const { data, error } = await supabase
-        .from('videos')
+      const { data, error } = await (supabase
+        .from('videos') as any)
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })

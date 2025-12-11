@@ -23,8 +23,8 @@ export default function RegisterPage() {
 
     try {
       // Check if username is available
-      const { data: existingProfile } = await supabase
-        .from('profiles')
+      const { data: existingProfile } = await (supabase
+        .from('profiles') as any)
         .select('username')
         .eq('username', formData.username)
         .single()
@@ -50,8 +50,8 @@ export default function RegisterPage() {
 
       // Update profile with username
       if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
+        const { error: profileError } = await (supabase
+          .from('profiles') as any)
           .update({ username: formData.username })
           .eq('id', authData.user.id)
 
