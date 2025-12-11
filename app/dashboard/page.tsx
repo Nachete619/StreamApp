@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/Providers'
 import { createClient } from '@/lib/supabase/client'
@@ -29,7 +29,7 @@ interface Video {
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
   const [stream, setStream] = useState<Stream | null>(null)
   const [videos, setVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,7 +59,7 @@ export default function DashboardPage() {
     if (!user?.id) return
     
     try {
-      const { data, error } = await (supabase
+      const { data, error } = await (supabaseRef.current
         .from('streams') as any)
         .select('*')
         .eq('user_id', user.id)
@@ -74,13 +74,13 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, supabase])
+  }, [user?.id])
 
   const fetchVideos = useCallback(async () => {
     if (!user?.id) return
     
     try {
-      const { data, error } = await (supabase
+      const { data, error } = await (supabaseRef.current
         .from('videos') as any)
         .select('*')
         .eq('user_id', user.id)
@@ -92,7 +92,7 @@ export default function DashboardPage() {
     } catch (error: any) {
       console.error('Error fetching videos:', error)
     }
-  }, [user?.id, supabase])
+  }, [user?.id])
 
   useEffect(() => {
     if (!authLoading && !user) {

@@ -17,25 +17,39 @@ const AuthContext = createContext<AuthContextType>({
 export function Providers({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
 
   useEffect(() => {
+    let mounted = true
+    let subscription: { unsubscribe: () => void } | null = null
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
+    supabaseRef.current.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
     })
 
     // Listen for auth changes
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
+      data: { subscription: authSubscription },
+    } = supabaseRef.current.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
     })
 
-    return () => subscription.unsubscribe()
-  }, [supabase])
+    subscription = authSubscription
+
+    return () => {
+      mounted = false
+      if (subscription) {
+        subscription.unsubscribe()
+      }
+    }
+  }, [])
 
   return (
     <AuthContext.Provider value={{ user, loading }}>

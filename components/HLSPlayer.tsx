@@ -18,9 +18,11 @@ export function HLSPlayer({ playbackId, autoPlay = true }: HLSPlayerProps) {
     if (!video) return
 
     const hlsUrl = `https://livepeercdn.studio/hls/${playbackId}/index.m3u8`
+    let hls: Hls | null = null
+    let loadedMetadataHandler: (() => void) | null = null
 
     if (Hls.isSupported()) {
-      const hls = new Hls({
+      hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
         backBufferLength: 90,
@@ -29,7 +31,7 @@ export function HLSPlayer({ playbackId, autoPlay = true }: HLSPlayerProps) {
       hls.loadSource(hlsUrl)
       hls.attachMedia(video)
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      const manifestHandler = () => {
         setLoading(false)
         if (autoPlay) {
           video.play().catch((err) => {
@@ -37,35 +39,43 @@ export function HLSPlayer({ playbackId, autoPlay = true }: HLSPlayerProps) {
             setError('Error al reproducir el video')
           })
         }
-      })
+      }
 
-      hls.on(Hls.Events.ERROR, (_, data) => {
+      hls.on(Hls.Events.MANIFEST_PARSED, manifestHandler)
+
+      const errorHandler = (_: any, data: any) => {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               console.error('Network error, trying to recover...')
-              hls.startLoad()
+              hls?.startLoad()
               break
             case Hls.ErrorTypes.MEDIA_ERROR:
               console.error('Media error, trying to recover...')
-              hls.recoverMediaError()
+              hls?.recoverMediaError()
               break
             default:
               console.error('Fatal error, destroying HLS...')
-              hls.destroy()
+              hls?.destroy()
               setError('Error al cargar el stream')
               break
           }
         }
-      })
+      }
+
+      hls.on(Hls.Events.ERROR, errorHandler)
 
       return () => {
-        hls.destroy()
+        if (hls) {
+          hls.off(Hls.Events.MANIFEST_PARSED, manifestHandler)
+          hls.off(Hls.Events.ERROR, errorHandler)
+          hls.destroy()
+        }
       }
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari)
       video.src = hlsUrl
-      video.addEventListener('loadedmetadata', () => {
+      loadedMetadataHandler = () => {
         setLoading(false)
         if (autoPlay) {
           video.play().catch((err) => {
@@ -73,9 +83,18 @@ export function HLSPlayer({ playbackId, autoPlay = true }: HLSPlayerProps) {
             setError('Error al reproducir el video')
           })
         }
-      })
+      }
+      video.addEventListener('loadedmetadata', loadedMetadataHandler)
+
+      return () => {
+        if (loadedMetadataHandler) {
+          video.removeEventListener('loadedmetadata', loadedMetadataHandler)
+        }
+        video.src = ''
+      }
     } else {
       setError('Tu navegador no soporta la reproducción de streams HLS')
+      setLoading(false)
     }
   }, [playbackId, autoPlay])
 

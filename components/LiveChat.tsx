@@ -25,17 +25,21 @@ interface LiveChatProps {
 
 export function LiveChat({ streamId }: LiveChatProps) {
   const { user } = useAuth()
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
   const fetchMessages = useCallback(async () => {
     try {
       // Fetch messages without join to avoid foreign key error
-      const { data: messagesData, error } = await supabase
+      const { data: messagesData, error } = await supabaseRef.current
         .from('messages')
         .select('id, content, created_at, user_id')
         .eq('stream_id', streamId)
@@ -47,7 +51,7 @@ export function LiveChat({ streamId }: LiveChatProps) {
       // Fetch profiles for all message users
       if (messagesData && messagesData.length > 0) {
         const userIds = [...new Set(messagesData.map((m: any) => m.user_id))]
-        const { data: profilesData } = await supabase
+        const { data: profilesData } = await supabaseRef.current
           .from('profiles')
           .select('id, username, avatar_url')
           .in('id', userIds)
@@ -72,14 +76,14 @@ export function LiveChat({ streamId }: LiveChatProps) {
       toast.error('Error al cargar mensajes')
       setLoading(false)
     }
-  }, [streamId, supabase])
+  }, [streamId])
 
   useEffect(() => {
     // Fetch initial messages
     fetchMessages()
 
     // Subscribe to new messages
-    const channel = supabase
+    const channel = supabaseRef.current
       .channel(`stream:${streamId}`)
       .on(
         'postgres_changes',
@@ -96,17 +100,13 @@ export function LiveChat({ streamId }: LiveChatProps) {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabaseRef.current.removeChannel(channel)
     }
-  }, [streamId, supabase, fetchMessages])
+  }, [streamId, fetchMessages])
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  }, [messages, scrollToBottom])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
