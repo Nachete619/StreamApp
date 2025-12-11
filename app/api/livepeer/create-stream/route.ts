@@ -44,6 +44,14 @@ export async function POST(request: NextRequest) {
 
     const stream = streamResponse.stream
 
+    // Validate stream ID exists
+    if (!stream.id || typeof stream.id !== 'string') {
+      return NextResponse.json(
+        { error: 'Stream ID is missing' },
+        { status: 500 }
+      )
+    }
+
     // Get stream key and RTMP ingest URL
     const streamKeyResponse = await livepeer.stream.get(stream.id)
     
