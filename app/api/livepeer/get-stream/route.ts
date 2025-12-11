@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      query = query.eq('user_id', profile.id).order('created_at', { ascending: false }).limit(1)
+      query = query.eq('user_id', (profile as any).id).order('created_at', { ascending: false }).limit(1)
     } else if (userId) {
       query = query.eq('user_id', userId).order('created_at', { ascending: false }).limit(1)
     } else {
