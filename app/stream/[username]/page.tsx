@@ -133,7 +133,7 @@ export default async function StreamPage({ params }: PageProps) {
               <div>
                 <h2 className="text-xl font-bold text-dark-50 mb-4">Videos Anteriores</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {videos.map((video) => (
+                  {videos.map((video: any) => (
                     <Link
                       key={video.id}
                       href={video.playback_url}

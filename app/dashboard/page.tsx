@@ -406,7 +406,7 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="text-lg font-bold text-dark-50 mb-4">Videos Recientes</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    {videos.slice(0, 4).map((video) => (
+                    {videos.slice(0, 4).map((video: any) => (
                       <Link
                         key={video.id}
                         href={video.playback_url}
