@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/Providers'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
-import { Copy, Check, Video, Radio, ExternalLink, Users, Clock, TrendingUp, Settings, Eye, BarChart3 } from 'lucide-react'
+import { Copy, Check, Video, Radio, ExternalLink, Users, Clock, TrendingUp, Settings, Eye, BarChart3, Edit2, X } from 'lucide-react'
 import Link from 'next/link'
 import { LiveChat } from '@/components/LiveChat'
 import { HLSPlayer } from '@/components/HLSPlayer'
@@ -38,6 +38,9 @@ export default function DashboardPage() {
   const [formData, setFormData] = useState({
     title: '',
   })
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editingTitle, setEditingTitle] = useState('')
+  const [updatingTitle, setUpdatingTitle] = useState(false)
   
   // Stats
   const [stats, setStats] = useState({
@@ -176,6 +179,58 @@ export default function DashboardPage() {
       setTimeout(() => setCopied(null), 2000)
     } catch (error) {
       toast.error('Error al copiar')
+    }
+  }
+
+  const handleStartEditTitle = () => {
+    if (stream) {
+      setEditingTitle(stream.title)
+      setIsEditingTitle(true)
+    }
+  }
+
+  const handleCancelEditTitle = () => {
+    setIsEditingTitle(false)
+    setEditingTitle('')
+  }
+
+  const handleSaveTitle = async () => {
+    if (!stream || !editingTitle.trim()) {
+      toast.error('El título no puede estar vacío')
+      return
+    }
+
+    if (editingTitle.trim() === stream.title) {
+      setIsEditingTitle(false)
+      return
+    }
+
+    setUpdatingTitle(true)
+    try {
+      const response = await fetch('/api/streams/update-title', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          streamId: stream.id,
+          title: editingTitle.trim(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al actualizar título')
+      }
+
+      toast.success('Título actualizado exitosamente')
+      setIsEditingTitle(false)
+      fetchStream() // Refresh stream data
+    } catch (error: any) {
+      toast.error(error.message || 'Error al actualizar título')
+    } finally {
+      setUpdatingTitle(false)
     }
   }
 
@@ -338,7 +393,59 @@ export default function DashboardPage() {
                 </div>
                 
                 <div className="p-6">
-                  <h3 className="text-xl font-bold text-dark-50 mb-4">{stream.title}</h3>
+                  {/* Stream Title with Edit */}
+                  <div className="mb-4">
+                    {isEditingTitle ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          className="input text-xl font-bold flex-1"
+                          placeholder="Título del stream"
+                          maxLength={100}
+                          disabled={updatingTitle}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSaveTitle()
+                            } else if (e.key === 'Escape') {
+                              handleCancelEditTitle()
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleSaveTitle}
+                          disabled={updatingTitle || !editingTitle.trim()}
+                          className="btn btn-primary px-3 py-2"
+                        >
+                          {updatingTitle ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={handleCancelEditTitle}
+                          disabled={updatingTitle}
+                          className="btn btn-secondary px-3 py-2"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 group">
+                        <h3 className="text-xl font-bold text-dark-50 flex-1">{stream.title}</h3>
+                        <button
+                          onClick={handleStartEditTitle}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity btn btn-ghost p-2"
+                          title="Editar título"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   
                   {/* Stream Configuration */}
                   <div className="space-y-4">
@@ -434,7 +541,7 @@ export default function DashboardPage() {
             <div className="lg:col-span-5">
               {stream.is_live ? (
                 <div className="sticky top-20">
-                  <LiveChat streamId={stream.id} />
+                  <LiveChat streamId={stream.id} isLive={stream.is_live} />
                 </div>
               ) : (
                 <div className="card-premium p-8 text-center">

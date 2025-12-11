@@ -21,9 +21,10 @@ interface Message {
 
 interface LiveChatProps {
   streamId: string
+  isLive?: boolean
 }
 
-export function LiveChat({ streamId }: LiveChatProps) {
+export function LiveChat({ streamId, isLive }: LiveChatProps) {
   const { user } = useAuth()
   const supabaseRef = useRef(createClient())
   const [messages, setMessages] = useState<Message[]>([])
@@ -31,6 +32,7 @@ export function LiveChat({ streamId }: LiveChatProps) {
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const previousIsLiveRef = useRef<boolean | undefined>(isLive)
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -108,6 +110,16 @@ export function LiveChat({ streamId }: LiveChatProps) {
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
+
+  // Reset chat when stream goes live (transitions from offline to live)
+  useEffect(() => {
+    // If stream just went live (was offline, now is live), clear messages
+    if (isLive && previousIsLiveRef.current === false) {
+      setMessages([])
+      fetchMessages()
+    }
+    previousIsLiveRef.current = isLive
+  }, [isLive, fetchMessages])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()

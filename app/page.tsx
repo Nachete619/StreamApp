@@ -2,7 +2,6 @@ import { createServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { EnhancedStreamCard } from "@/components/EnhancedStreamCard";
 import { CategoryCard } from "@/components/CategoryCard";
-import { HeroCarousel } from "@/components/HeroCarousel";
 import Link from "next/link";
 import { TrendingUp, ArrowRight } from "lucide-react";
 
@@ -48,32 +47,6 @@ export default async function Home() {
     console.error('Error fetching streams:', streamsError)
   }
 
-  // Fetch featured streams for carousel
-  const { data: featuredStreamsData, error: featuredError } = await (supabase
-    .from("streams") as any)
-    .select("*")
-    .eq("is_live", true)
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  let featuredStreams: any[] = []
-  if (featuredStreamsData && featuredStreamsData.length > 0) {
-    const userIds = [...new Set(featuredStreamsData.map((s: any) => s.user_id))]
-    const { data: profilesData } = await (supabase
-      .from("profiles") as any)
-      .select("id, username, avatar_url, bio")
-      .in("id", userIds)
-
-    const profilesMap = new Map((profilesData || []).map((p: any) => [p.id, p]))
-    featuredStreams = featuredStreamsData.map((stream: any) => ({
-      ...stream,
-      profiles: profilesMap.get(stream.user_id) || null
-    }))
-  }
-
-  if (featuredError) {
-    console.error('Error fetching featured streams:', featuredError)
-  }
 
   // Top categories (hardcoded for now, can be dynamic later)
   const topCategories = [
@@ -84,13 +57,6 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-dark-950">
-      {/* Hero Carousel Section */}
-      {featuredStreams && featuredStreams.length > 0 && (
-        <section className="mb-8">
-          <HeroCarousel streams={featuredStreams} />
-        </section>
-      )}
-
       <div className="px-6 py-8">
         {/* Top Categories Section */}
         <section className="mb-12">

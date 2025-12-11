@@ -164,7 +164,7 @@ export default async function StreamPage({ params }: PageProps) {
           <div className="lg:col-span-1">
             {stream ? (
               <div className="sticky top-20 h-[calc(100vh-5rem)]">
-                <LiveChat streamId={stream.id} />
+                <LiveChat streamId={stream.id} isLive={stream.is_live} />
               </div>
             ) : (
               <div className="card p-6 h-[calc(100vh-5rem)] flex items-center justify-center">
