@@ -28,9 +28,15 @@ export default async function ExplorePage({ searchParams }: PageProps) {
   // In the future, you can filter by category here
   // For now, we'll just show all live streams
 
-  const { data: streams } = await query
+  const { data: streams, error: streamsError } = await query
     .order('created_at', { ascending: false })
     .limit(50)
+
+  if (streamsError) {
+    console.error('Error fetching streams in explore:', streamsError)
+  } else {
+    console.log('Explore - Streams fetched:', streams?.length || 0, 'streams found')
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -48,9 +54,11 @@ export default async function ExplorePage({ searchParams }: PageProps) {
 
           {streams && streams.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {streams.map((stream: any) => (
-                <StreamCard key={stream.id} stream={stream} />
-              ))}
+              {streams
+                .filter((stream: any) => stream.profiles && stream.profiles.username) // Filter out streams without profiles
+                .map((stream: any) => (
+                  <StreamCard key={stream.id} stream={stream} />
+                ))}
             </div>
           ) : (
             <div className="text-center py-16 text-dark-400">

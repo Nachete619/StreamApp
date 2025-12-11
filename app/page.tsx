@@ -20,7 +20,7 @@ export default async function Home() {
   }
 
   // Fetch live streams
-  const { data: streams } = await (supabase
+  const { data: streams, error: streamsError } = await (supabase
     .from("streams") as any)
     .select(`
       *,
@@ -34,8 +34,23 @@ export default async function Home() {
     .order("created_at", { ascending: false })
     .limit(20);
 
+  if (streamsError) {
+    console.error('Error fetching streams:', streamsError)
+  } else {
+    console.log('Streams fetched:', streams?.length || 0, 'streams found')
+    if (streams && streams.length > 0) {
+      console.log('Sample stream:', {
+        id: streams[0].id,
+        title: streams[0].title,
+        is_live: streams[0].is_live,
+        hasProfile: !!streams[0].profiles,
+        profileUsername: streams[0].profiles?.username
+      })
+    }
+  }
+
   // Fetch featured streams for carousel
-  const { data: featuredStreams } = await (supabase
+  const { data: featuredStreams, error: featuredError } = await (supabase
     .from("streams") as any)
     .select(`
       *,
@@ -49,6 +64,10 @@ export default async function Home() {
     .eq("is_live", true)
     .order("created_at", { ascending: false })
     .limit(5);
+
+  if (featuredError) {
+    console.error('Error fetching featured streams:', featuredError)
+  }
 
   // Top categories (hardcoded for now, can be dynamic later)
   const topCategories = [
@@ -114,13 +133,15 @@ export default async function Home() {
 
           {streams && streams.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {streams.map((stream: any) => (
-                <EnhancedStreamCard 
-                  key={stream.id} 
-                  stream={stream}
-                  viewers={Math.floor(Math.random() * 5000)}
-                />
-              ))}
+              {streams
+                .filter((stream: any) => stream.profiles && stream.profiles.username) // Filter out streams without profiles
+                .map((stream: any) => (
+                  <EnhancedStreamCard 
+                    key={stream.id} 
+                    stream={stream}
+                    viewers={Math.floor(Math.random() * 5000)}
+                  />
+                ))}
             </div>
           ) : (
             /* Enhanced Empty State */
