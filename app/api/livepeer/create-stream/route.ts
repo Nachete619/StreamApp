@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { livepeer } from '@/lib/livepeer'
 import { createServerClient } from '@/lib/supabase/server'
+import { Database } from '@/lib/supabase/database.types'
+
+type StreamInsert = Database['public']['Tables']['streams']['Insert']
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,16 +70,18 @@ export async function POST(request: NextRequest) {
     const ingestUrl = `rtmp://rtmp.livepeer.com/live`
 
     // Save stream to Supabase
+    const streamInsert: StreamInsert = {
+      user_id: user.id,
+      title,
+      stream_key: streamKey || '',
+      ingest_url: ingestUrl,
+      playback_id: stream.playbackId || '',
+      is_live: false,
+    }
+    
     const { data: streamData, error: dbError } = await supabase
       .from('streams')
-      .insert({
-        user_id: user.id,
-        title,
-        stream_key: streamKey || '',
-        ingest_url: ingestUrl,
-        playback_id: stream.playbackId || '',
-        is_live: false,
-      })
+      .insert(streamInsert)
       .select()
       .single()
 
