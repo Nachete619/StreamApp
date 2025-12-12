@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/Providers'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
-import { Copy, Check, Video, Radio, ExternalLink, Users, Clock, TrendingUp, Settings, Eye, BarChart3, Edit2, X } from 'lucide-react'
+import { Copy, Check, Video, Radio, ExternalLink, Users, Clock, TrendingUp, Settings, Eye, BarChart3, Edit2, X, Square } from 'lucide-react'
 import Link from 'next/link'
 import { LiveChat } from '@/components/LiveChat'
 import { HLSPlayer } from '@/components/HLSPlayer'
@@ -41,6 +41,7 @@ export default function DashboardPage() {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editingTitle, setEditingTitle] = useState('')
   const [updatingTitle, setUpdatingTitle] = useState(false)
+  const [stopping, setStopping] = useState(false)
   
   // Stats
   const [stats, setStats] = useState({
@@ -231,6 +232,40 @@ export default function DashboardPage() {
       toast.error(error.message || 'Error al actualizar título')
     } finally {
       setUpdatingTitle(false)
+    }
+  }
+
+  const handleStopStream = async () => {
+    if (!stream) return
+
+    if (!confirm('¿Estás seguro de que deseas detener la transmisión?')) {
+      return
+    }
+
+    setStopping(true)
+    try {
+      const response = await fetch('/api/streams/stop-stream', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          streamId: stream.id,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al detener stream')
+      }
+
+      toast.success('Transmisión detenida exitosamente')
+      fetchStream() // Refresh stream data
+    } catch (error: any) {
+      toast.error(error.message || 'Error al detener stream')
+    } finally {
+      setStopping(false)
     }
   }
 
@@ -443,6 +478,23 @@ export default function DashboardPage() {
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
+                        {stream.is_live && (
+                          <button
+                            onClick={handleStopStream}
+                            disabled={stopping}
+                            className="btn btn-danger px-4 py-2 flex items-center gap-2"
+                            title="Detener transmisión"
+                          >
+                            {stopping ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <Square className="w-4 h-4" />
+                                <span className="hidden sm:inline">Detener</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
