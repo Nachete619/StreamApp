@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/Providers'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
-import { Copy, Check, Video, Radio, ExternalLink, Users, Clock, TrendingUp, Settings, Eye, BarChart3, Edit2, X, Square } from 'lucide-react'
+import { Copy, Check, Video, Radio, ExternalLink, Users, Clock, TrendingUp, Settings, Eye, BarChart3, Edit2, X, Square, FileText, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { LiveChat } from '@/components/LiveChat'
 import { HLSPlayer } from '@/components/HLSPlayer'
@@ -26,15 +26,25 @@ interface Video {
   created_at: string
 }
 
+interface StreamSummary {
+  id: string
+  stream_id: string
+  short_summary: string
+  long_summary: string
+  created_at: string
+}
+
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const supabaseRef = useRef(createClient())
   const [stream, setStream] = useState<Stream | null>(null)
   const [videos, setVideos] = useState<Video[]>([])
+  const [summary, setSummary] = useState<StreamSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
+  const [generatingSummary, setGeneratingSummary] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
   })
@@ -98,6 +108,53 @@ export default function DashboardPage() {
     }
   }, [user?.id])
 
+  const fetchSummary = useCallback(async (streamId: string) => {
+    try {
+      const { data, error } = await (supabaseRef.current
+        .from('stream_summaries') as any)
+        .select('*')
+        .eq('stream_id', streamId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (error) throw error
+      setSummary(data || null)
+    } catch (error: any) {
+      console.error('Error fetching summary:', error)
+    }
+  }, [])
+
+  const handleGenerateSummary = async () => {
+    if (!stream) return
+
+    setGeneratingSummary(true)
+    try {
+      const response = await fetch('/api/summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stream_id: stream.id,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al generar resumen')
+      }
+
+      toast.success('Resumen generado exitosamente')
+      fetchSummary(stream.id)
+    } catch (error: any) {
+      toast.error(error.message || 'Error al generar resumen')
+    } finally {
+      setGeneratingSummary(false)
+    }
+  }
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/auth/login')
@@ -109,6 +166,13 @@ export default function DashboardPage() {
       fetchVideos()
     }
   }, [user, authLoading, router, fetchStream, fetchVideos])
+
+  // Fetch summary when stream changes
+  useEffect(() => {
+    if (stream?.id) {
+      fetchSummary(stream.id)
+    }
+  }, [stream?.id, fetchSummary])
 
   // Poll for stream status updates when stream exists
   useEffect(() => {
@@ -587,6 +651,68 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
+
+              {/* Stream Summary Section */}
+              <div className="card-premium p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-accent-600/20 rounded-lg flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-accent-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-dark-50">Resumen del Stream</h3>
+                      <p className="text-xs text-dark-400">Generado automáticamente con IA</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleGenerateSummary}
+                    disabled={generatingSummary || !stream}
+                    className="btn btn-primary px-4 py-2 flex items-center gap-2"
+                  >
+                    {generatingSummary ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="hidden sm:inline">Generando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span className="hidden sm:inline">Generar Resumen</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {summary ? (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-semibold text-dark-300 mb-2">Resumen Corto</h4>
+                      <p className="text-sm text-dark-400 leading-relaxed">{summary.short_summary}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-dark-300 mb-2">Resumen Extendido</h4>
+                      <p className="text-sm text-dark-400 leading-relaxed">{summary.long_summary}</p>
+                    </div>
+                    <p className="text-xs text-dark-500 mt-4">
+                      Generado el {new Date(summary.created_at).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 text-dark-600 mx-auto mb-3" />
+                    <p className="text-sm text-dark-400 mb-2">No hay resumen disponible</p>
+                    <p className="text-xs text-dark-500">
+                      Genera un resumen automático basado en los mensajes del chat
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right Column - Chat */}

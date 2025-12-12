@@ -41,10 +41,12 @@ export function LiveChat({ streamId, isLive }: LiveChatProps) {
   const fetchMessages = useCallback(async () => {
     try {
       // Fetch messages without join to avoid foreign key error
+      // Only fetch visible messages (hidden = false)
       const { data: messagesData, error } = await supabaseRef.current
         .from('messages')
         .select('id, content, created_at, user_id')
         .eq('stream_id', streamId)
+        .eq('hidden', false) // Only show non-hidden messages
         .order('created_at', { ascending: true })
         .limit(100)
 
@@ -96,8 +98,11 @@ export function LiveChat({ streamId, isLive }: LiveChatProps) {
           table: 'messages',
           filter: `stream_id=eq.${streamId}`,
         },
-        () => {
-          fetchMessages()
+        (payload) => {
+          // Only refresh if the new message is not hidden
+          if (payload.new && !(payload.new as any).hidden) {
+            fetchMessages()
+          }
         }
       )
       .subscribe()
@@ -140,7 +145,8 @@ export function LiveChat({ streamId, isLive }: LiveChatProps) {
     setNewMessage('')
 
     try {
-      const response = await fetch('/api/chat/send', {
+      // Use moderation endpoint instead of direct send
+      const response = await fetch('/api/moderate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,6 +161,14 @@ export function LiveChat({ streamId, isLive }: LiveChatProps) {
 
       if (!response.ok) {
         throw new Error(data.error || 'Error al enviar mensaje')
+      }
+
+      // If message was moderated (hidden), show a notification
+      if (data.moderated) {
+        toast.error('Tu mensaje fue moderado y no se mostrará en el chat')
+      } else {
+        // Message was approved, refresh to show it
+        fetchMessages()
       }
     } catch (error: any) {
       toast.error(error.message || 'Error al enviar mensaje')
