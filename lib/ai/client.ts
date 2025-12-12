@@ -93,13 +93,13 @@ Responde SOLO con JSON en este formato:
       }
 
       const data = await response.json()
-      const content = data.choices[0]?.message?.content
+      const responseContent = data.choices[0]?.message?.content
 
-      if (!content) {
+      if (!responseContent) {
         throw new Error('No response from AI')
       }
 
-      const result = JSON.parse(content) as ModerationResult
+      const result = JSON.parse(responseContent) as ModerationResult
       return result
     } catch (error: any) {
       console.error('Error moderating message:', error)
@@ -169,13 +169,13 @@ Responde SOLO con JSON en este formato:
       }
 
       const data = await response.json()
-      const content = data.choices[0]?.message?.content
+      const responseContent = data.choices[0]?.message?.content
 
-      if (!content) {
+      if (!responseContent) {
         throw new Error('No response from AI')
       }
 
-      const result = JSON.parse(content) as SummaryResult
+      const result = JSON.parse(responseContent) as SummaryResult
       return result
     } catch (error: any) {
       console.error('Error generating summary:', error)
