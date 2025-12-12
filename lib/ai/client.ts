@@ -68,7 +68,7 @@ Responde SOLO con JSON en este formato:
 }`
 
     try {
-      const response = await fetch(`${this.baseURL}/chat/completions`, {
+      const response: Response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ Responde SOLO con JSON en este formato:
 }`
 
     try {
-      const response = await fetch(`${this.baseURL}/chat/completions`, {
+      const response: Response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
