@@ -76,13 +76,13 @@ export default function LandingPage() {
                 isVisible ? 'animate-scale-in opacity-100' : 'opacity-0 scale-90'
               }`}
             >
-              <div className="w-20 h-20 relative flex items-center justify-center animate-glow group">
+              <div className="w-32 h-32 relative flex items-center justify-center animate-glow group">
                 <Image 
                   src="/logo.png" 
                   alt="StreamApp Logo" 
-                  width={80} 
-                  height={80} 
-                  className="object-contain animate-float logo-neon"
+                  width={128} 
+                  height={128} 
+                  className="object-contain animate-float"
                   priority
                 />
               </div>

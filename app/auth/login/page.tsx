@@ -44,12 +44,12 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-16 h-16 relative flex items-center justify-center">
+            <div className="w-24 h-24 relative flex items-center justify-center">
               <Image 
                 src="/logo.png" 
                 alt="StreamApp Logo" 
-                width={64} 
-                height={64} 
+                width={96} 
+                height={96} 
                 className="object-contain logo-neon"
                 priority
               />
