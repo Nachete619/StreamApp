@@ -101,4 +101,30 @@
     content: '';
     @apply absolute inset-0 rounded-lg bg-gradient-to-r from-accent-500 to-accent-600 opacity-20 blur-xl -z-10;
   }
+  
+  .logo-neon {
+    filter: drop-shadow(0 0 8px rgba(255, 78, 107, 0.6)) 
+            drop-shadow(0 0 12px rgba(255, 78, 107, 0.4))
+            drop-shadow(0 0 20px rgba(255, 78, 107, 0.3));
+    animation: neon-pulse 2s ease-in-out infinite alternate;
+  }
+  
+  .logo-neon:hover {
+    filter: drop-shadow(0 0 12px rgba(255, 78, 107, 0.8)) 
+            drop-shadow(0 0 18px rgba(255, 78, 107, 0.6))
+            drop-shadow(0 0 28px rgba(255, 78, 107, 0.4));
+  }
+  
+  @keyframes neon-pulse {
+    0% {
+      filter: drop-shadow(0 0 8px rgba(255, 78, 107, 0.6)) 
+              drop-shadow(0 0 12px rgba(255, 78, 107, 0.4))
+              drop-shadow(0 0 20px rgba(255, 78, 107, 0.3));
+    }
+    100% {
+      filter: drop-shadow(0 0 12px rgba(255, 78, 107, 0.8)) 
+              drop-shadow(0 0 18px rgba(255, 78, 107, 0.6))
+              drop-shadow(0 0 28px rgba(255, 78, 107, 0.4));
+    }
+  }
 }

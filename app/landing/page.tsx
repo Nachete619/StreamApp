@@ -82,7 +82,7 @@ export default function LandingPage() {
                   alt="StreamApp Logo" 
                   width={48} 
                   height={48} 
-                  className="object-contain animate-float"
+                  className="object-contain animate-float logo-neon"
                   priority
                 />
               </div>

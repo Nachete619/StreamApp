@@ -56,7 +56,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 alt="StreamApp Logo" 
                 width={32} 
                 height={32} 
-                className="object-contain"
+                className="object-contain logo-neon"
                 priority
               />
             </div>
@@ -70,7 +70,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               alt="StreamApp Logo" 
               width={32} 
               height={32} 
-              className="object-contain"
+              className="object-contain logo-neon"
               priority
             />
           </div>
