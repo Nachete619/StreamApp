@@ -194,40 +194,39 @@ export async function POST(request: NextRequest) {
       }
 
       case 'recording.ready': {
-        // For recording.ready, the data is in body.payload
-        const payload = body.payload
-
-        if (!payload) {
-          console.error('recording.ready missing payload:', body)
-          return NextResponse.json(
-            { error: 'Invalid webhook payload: missing payload' },
-            { status: 400 }
-          )
-        }
-
-        const session = payload.session
+        console.log('recording.ready webhook received, full body:', JSON.stringify(body, null, 2))
+        
+        // Try different payload structures that Livepeer might use
+        const payload = body.payload || body.data || body
+        const session = payload.session || payload.stream || body.stream
 
         if (!session) {
-          console.error('recording.ready missing session:', payload)
-          return NextResponse.json(
-            { error: 'Invalid webhook payload: missing session' },
-            { status: 400 }
-          )
+          console.error('recording.ready missing session/stream:', { payload, body })
+          // Try to continue with what we have
         }
 
-        const playbackId = session.playbackId
-        const recordingUrl = payload.recordingUrl || session.recordingUrl
-        const mp4Url = payload.mp4Url || session.mp4Url
+        // Try multiple ways to get playbackId
+        const playbackId = session?.playbackId || 
+                          payload?.playbackId || 
+                          body.playbackId ||
+                          session?.id ||
+                          payload?.id
+
+        // Try multiple ways to get recording URL
+        const recordingUrl = payload?.recordingUrl || 
+                            session?.recordingUrl || 
+                            payload?.recording?.url ||
+                            body.recordingUrl
+
+        const mp4Url = payload?.mp4Url || session?.mp4Url
+
+        console.log('Extracted data:', { playbackId, recordingUrl, mp4Url, hasSession: !!session })
 
         if (!playbackId) {
-          console.error('recording.ready missing playbackId:', session)
-          return NextResponse.json(
-            { error: 'Invalid webhook payload: missing playbackId in session' },
-            { status: 400 }
-          )
+          console.error('recording.ready missing playbackId. Full body:', JSON.stringify(body, null, 2))
+          // Don't return error, just log it - might be a different format
+          break
         }
-
-        console.log('Processing recording.ready:', { playbackId, recordingUrl, mp4Url })
 
         // Get stream from database using playbackId
         const { data: streamData, error: streamError } = await (supabase
@@ -237,19 +236,28 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (streamError) {
-          console.error('Error fetching stream for recording:', streamError)
-          // Don't return error, just log it - the recording might be for a stream we don't have
+          console.error('Error fetching stream for recording:', streamError, 'playbackId:', playbackId)
+          // Try to find by partial match or other methods
+          const { data: allStreams } = await (supabase
+            .from('streams') as any)
+            .select('id, user_id, playback_id')
+            .limit(10)
+          
+          console.log('Available streams in DB:', allStreams?.map((s: any) => ({ id: s.id, playback_id: s.playback_id })))
           break
         }
 
         if (!streamData) {
           console.log('No stream found for playbackId:', playbackId)
-          // Don't return error, just log it
           break
         }
 
-        // Use the recordingUrl from the webhook, or fallback to the old format
-        const finalRecordingUrl = recordingUrl || `https://playback.livepeer.studio/recordings/${playbackId}/index.m3u8`
+        // Use the recordingUrl from the webhook, or construct it
+        const finalRecordingUrl = recordingUrl || 
+                                  mp4Url ||
+                                  `https://playback.livepeer.studio/recordings/${playbackId}/index.m3u8`
+
+        console.log('Saving VOD with URL:', finalRecordingUrl)
 
         // Check if video already exists to avoid duplicates
         const { data: existingVideo } = await (supabase
@@ -259,24 +267,45 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (!existingVideo) {
-          console.log('Creating VOD for stream:', (streamData as any).id)
+          console.log('Creating VOD for stream:', (streamData as any).id, 'user:', (streamData as any).user_id)
+          
           // Save video (VOD) to database
-          const { error: insertError } = await (supabase
+          const { error: insertError, data: insertedVideo } = await (supabase
             .from('videos') as any)
             .insert({
               stream_id: (streamData as any).id,
               user_id: (streamData as any).user_id,
               playback_url: finalRecordingUrl,
-              duration: session.transcodedSegmentsDuration || null,
+              duration: session?.transcodedSegmentsDuration || 
+                       payload?.duration || 
+                       null,
             })
+            .select()
+            .single()
 
           if (insertError) {
             console.error('Error inserting video:', insertError)
+            console.error('Video data attempted:', {
+              stream_id: (streamData as any).id,
+              user_id: (streamData as any).user_id,
+              playback_url: finalRecordingUrl,
+            })
           } else {
-            console.log('VOD created successfully')
+            console.log('✅ VOD created successfully:', insertedVideo)
           }
         } else {
           console.log('VOD already exists for stream:', (streamData as any).id)
+          // Update the URL in case it changed
+          const { error: updateError } = await (supabase
+            .from('videos') as any)
+            .update({ playback_url: finalRecordingUrl })
+            .eq('id', existingVideo.id)
+          
+          if (updateError) {
+            console.error('Error updating video URL:', updateError)
+          } else {
+            console.log('Video URL updated')
+          }
         }
         break
       }
