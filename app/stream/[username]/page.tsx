@@ -67,21 +67,23 @@ export default function StreamPage() {
     fetchData()
 
     // Poll for stream updates every 5 seconds if stream exists and is marked as live
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       if (profile) {
-        supabase
-          .from('streams')
-          .select('*')
-          .eq('user_id', profile.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-          .then(({ data }) => {
-            if (data) {
-              setStream(data)
-            }
-          })
-          .catch(console.error)
+        try {
+          const { data } = await (supabase
+            .from('streams') as any)
+            .select('*')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          
+          if (data) {
+            setStream(data)
+          }
+        } catch (error) {
+          console.error('Error polling stream:', error)
+        }
       }
     }, 5000)
 
