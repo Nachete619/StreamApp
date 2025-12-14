@@ -13,7 +13,8 @@ import {
   Radio,
   User,
   Heart,
-  TrendingUp
+  TrendingUp,
+  Calendar
 } from 'lucide-react'
 import { useAuth } from './Providers'
 
@@ -30,6 +31,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     { icon: Home, label: 'Inicio', href: '/', badge: null },
     { icon: Heart, label: 'Siguiendo', href: '/following', badge: null },
     { icon: Compass, label: 'Explorar', href: '/explore', badge: null },
+    { icon: Calendar, label: 'Schedules', href: '/schedules', badge: null },
   ]
 
   const isActive = (href: string) => {

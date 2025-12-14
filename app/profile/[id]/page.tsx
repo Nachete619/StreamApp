@@ -8,6 +8,7 @@ import { User, Video, Calendar, Edit2, Save, X, Upload, Heart, Share2, Settings,
 import { EnhancedStreamCard } from '@/components/EnhancedStreamCard'
 import { XPDisplay } from '@/components/XPDisplay'
 import { BadgeDisplay } from '@/components/BadgeDisplay'
+import { ScheduleManager } from '@/components/ScheduleManager'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/client'
@@ -209,13 +210,58 @@ export default function ProfilePage() {
         
         {/* Edit Cover Button */}
         {isOwnProfile && (
-          <button
-            onClick={() => setEditing(!editing)}
-            className="absolute top-4 right-4 px-4 py-2 bg-dark-900/80 backdrop-blur-sm text-dark-200 rounded-lg hover:bg-dark-800 transition-colors flex items-center gap-2"
-          >
-            <Edit2 className="w-4 h-4" />
-            {editing ? 'Cancelar' : 'Editar Perfil'}
-          </button>
+          <div className="absolute top-4 right-4 flex gap-2">
+            {editing && (
+              <label className="px-4 py-2 bg-dark-900/80 backdrop-blur-sm text-dark-200 rounded-lg hover:bg-dark-800 transition-colors flex items-center gap-2 cursor-pointer">
+                <Upload className="w-4 h-4" />
+                Cambiar Banner
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+
+                    // Validate file size (max 10MB)
+                    if (file.size > 10 * 1024 * 1024) {
+                      toast.error('El archivo es demasiado grande. Máximo 10MB.')
+                      return
+                    }
+
+                    try {
+                      const formData = new FormData()
+                      formData.append('file', file)
+
+                      const response = await fetch('/api/upload/cover', {
+                        method: 'POST',
+                        body: formData,
+                      })
+
+                      const data = await response.json()
+
+                      if (!response.ok) {
+                        throw new Error(data.error || 'Error al subir imagen')
+                      }
+
+                      toast.success('Banner actualizado')
+                      await fetchData()
+                      router.refresh()
+                    } catch (error: any) {
+                      toast.error(error.message || 'Error al subir imagen')
+                    }
+                  }}
+                />
+              </label>
+            )}
+            <button
+              onClick={() => setEditing(!editing)}
+              className="px-4 py-2 bg-dark-900/80 backdrop-blur-sm text-dark-200 rounded-lg hover:bg-dark-800 transition-colors flex items-center gap-2"
+            >
+              <Edit2 className="w-4 h-4" />
+              {editing ? 'Cancelar' : 'Editar Perfil'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -242,11 +288,39 @@ export default function ProfilePage() {
                 <Upload className="w-5 h-5 text-white" />
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
                   className="hidden"
-                  onChange={(e) => {
-                    // Handle upload logic here
-                    toast('Subida de imagen próximamente. Usa una URL por ahora.')
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+
+                    // Validate file size (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast.error('El archivo es demasiado grande. Máximo 5MB.')
+                      return
+                    }
+
+                    try {
+                      const formData = new FormData()
+                      formData.append('file', file)
+
+                      const response = await fetch('/api/upload/avatar', {
+                        method: 'POST',
+                        body: formData,
+                      })
+
+                      const data = await response.json()
+
+                      if (!response.ok) {
+                        throw new Error(data.error || 'Error al subir imagen')
+                      }
+
+                      toast.success('Avatar actualizado')
+                      await fetchData()
+                      router.refresh()
+                    } catch (error: any) {
+                      toast.error(error.message || 'Error al subir imagen')
+                    }
                   }}
                 />
               </label>
@@ -286,27 +360,19 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-2">
-                    URL del Avatar
+                    Avatar
                   </label>
-                  <input
-                    type="url"
-                    value={editForm.avatar_url}
-                    onChange={(e) => setEditForm({ ...editForm, avatar_url: e.target.value })}
-                    className="input"
-                    placeholder="https://..."
-                  />
+                  <p className="text-xs text-dark-500 mb-2">
+                    Usa el botón de subida junto al avatar para cambiar la imagen
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-dark-300 mb-2">
-                    URL del Banner
+                    Banner
                   </label>
-                  <input
-                    type="url"
-                    value={editForm.cover_url}
-                    onChange={(e) => setEditForm({ ...editForm, cover_url: e.target.value })}
-                    className="input"
-                    placeholder="https://..."
-                  />
+                  <p className="text-xs text-dark-500 mb-2">
+                    Usa el botón de subida en el banner para cambiar la imagen
+                  </p>
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -519,22 +585,29 @@ export default function ProfilePage() {
             )}
 
             {activeTab === 'about' && (
-              <div className="card-premium p-8">
-                <h3 className="text-xl font-bold text-dark-50 mb-6">Acerca de</h3>
-                {profile.bio ? (
-                  <p className="text-dark-300 whitespace-pre-line">{profile.bio}</p>
-                ) : (
-                  <p className="text-dark-500 italic">
-                    {isOwnProfile ? 'Añade una descripción sobre ti en la edición del perfil' : 'Este usuario no ha añadido una descripción'}
-                  </p>
-                )}
-                
-                {/* Social Links */}
-                <div className="mt-8 pt-8 border-t border-dark-800">
-                  <h4 className="text-sm font-semibold text-dark-400 uppercase mb-4">Enlaces</h4>
-                  <div className="flex flex-wrap gap-4">
-                    {/* Social links would go here */}
+              <div className="space-y-6">
+                <div className="card-premium p-8">
+                  <h3 className="text-xl font-bold text-dark-50 mb-6">Acerca de</h3>
+                  {profile.bio ? (
+                    <p className="text-dark-300 whitespace-pre-line">{profile.bio}</p>
+                  ) : (
+                    <p className="text-dark-500 italic">
+                      {isOwnProfile ? 'Añade una descripción sobre ti en la edición del perfil' : 'Este usuario no ha añadido una descripción'}
+                    </p>
+                  )}
+                  
+                  {/* Social Links */}
+                  <div className="mt-8 pt-8 border-t border-dark-800">
+                    <h4 className="text-sm font-semibold text-dark-400 uppercase mb-4">Enlaces</h4>
+                    <div className="flex flex-wrap gap-4">
+                      {/* Social links would go here */}
+                    </div>
                   </div>
+                </div>
+
+                {/* Stream Schedules */}
+                <div>
+                  <ScheduleManager userId={id} isOwn={isOwnProfile} />
                 </div>
               </div>
             )}
