@@ -50,12 +50,12 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       <div className="h-16 flex items-center justify-between px-4 border-b border-dark-800">
         {!isCollapsed && (
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <div className="w-12 h-12 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               <Image 
                 src="/logo.png" 
                 alt="StreamApp Logo" 
-                width={32} 
-                height={32} 
+                width={48} 
+                height={48} 
                 className="object-contain logo-neon"
                 priority
               />
@@ -64,12 +64,12 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           </Link>
         )}
         {isCollapsed && (
-          <div className="w-8 h-8 relative flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 relative flex items-center justify-center mx-auto">
             <Image 
               src="/logo.png" 
               alt="StreamApp Logo" 
-              width={32} 
-              height={32} 
+              width={48} 
+              height={48} 
               className="object-contain logo-neon"
               priority
             />
