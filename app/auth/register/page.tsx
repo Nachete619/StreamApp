@@ -78,7 +78,7 @@ export default function RegisterPage() {
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
             <div className="w-24 h-24 relative flex items-center justify-center">
               <Image 
-                src="/logo.svg" 
+                src="/logo.png" 
                 alt="StreamApp Logo" 
                 width={96} 
                 height={96} 

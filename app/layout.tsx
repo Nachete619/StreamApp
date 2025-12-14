@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   title: "StreamApp - Live Streaming Platform",
   description: "Live streaming platform inspired by Kick.com",
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
 };
 

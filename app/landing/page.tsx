@@ -78,7 +78,7 @@ export default function LandingPage() {
             >
               <div className="w-32 h-32 relative flex items-center justify-center animate-glow group">
                 <Image 
-                  src="/logo.svg" 
+                  src="/logo.png" 
                   alt="StreamApp Logo" 
                   width={128} 
                   height={128} 
