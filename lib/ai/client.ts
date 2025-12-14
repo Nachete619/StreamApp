@@ -8,11 +8,6 @@ interface ModerationResult {
   reason?: string
 }
 
-interface SummaryResult {
-  shortSummary: string
-  longSummary: string
-}
-
 export class AIClient {
   private apiKey: string
   private baseURL: string
@@ -109,79 +104,6 @@ Responde SOLO con JSON en este formato:
     }
   }
 
-  /**
-   * Generate summaries for a stream
-   */
-  async generateSummary(
-    title: string,
-    messages: Array<{ content: string; created_at: string }>,
-    streamerUsername?: string
-  ): Promise<SummaryResult> {
-    this.checkAPIKey()
-    const messagesText = messages
-      .slice(-200) // Last 200 messages
-      .map((m) => m.content)
-      .join('\n')
-
-    const systemPrompt = `Eres un asistente que genera resúmenes de streams de transmisión en vivo.
-
-Genera dos resúmenes del stream basándote en:
-- El título del stream: "${title}"
-- Los mensajes del chat (últimos 200 mensajes)
-${streamerUsername ? `- El streamer: ${streamerUsername}` : ''}
-
-Genera:
-1. Un resumen corto (máximo 100 palabras) - breve y conciso
-2. Un resumen extendido (máximo 300 palabras) - más detallado con temas principales, interacciones destacadas, y momentos importantes
-
-Responde SOLO con JSON en este formato:
-{
-  "shortSummary": "resumen corto aquí",
-  "longSummary": "resumen extendido aquí"
-}`
-
-    try {
-      const response: Response = await fetch(`${this.baseURL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: this.provider === 'openai' ? 'gpt-4-turbo-preview' : 'llama-3.1-70b-versatile',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            {
-              role: 'user',
-              content: `Mensajes del chat:\n${messagesText}\n\nGenera los resúmenes.`,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 500,
-          response_format: { type: 'json_object' },
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.text()
-        console.error('AI API error:', error)
-        throw new Error(`AI API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-      const responseContent = data.choices[0]?.message?.content
-
-      if (!responseContent) {
-        throw new Error('No response from AI')
-      }
-
-      const result = JSON.parse(responseContent) as SummaryResult
-      return result
-    } catch (error: any) {
-      console.error('Error generating summary:', error)
-      throw error
-    }
-  }
 }
 
 // Export singleton instance

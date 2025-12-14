@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { HLSPlayer } from '@/components/HLSPlayer'
 import { LiveChat } from '@/components/LiveChat'
+import { StreamViewTracker } from '@/components/StreamViewTracker'
 import { User, Eye, Heart, Share2, Video } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -53,7 +54,10 @@ export default async function StreamPage({ params }: PageProps) {
             {/* Video Player */}
             <div className="relative aspect-video bg-dark-900 rounded-lg overflow-hidden border border-dark-800">
               {stream && stream.is_live && stream.playback_id ? (
-                <HLSPlayer playbackId={stream.playback_id} />
+                <>
+                  <HLSPlayer playbackId={stream.playback_id} />
+                  <StreamViewTracker streamId={stream.id} isLive={stream.is_live} />
+                </>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-dark-900">
                   <div className="text-center text-dark-400">

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from './Providers'
 import { Send, User } from 'lucide-react'
+import { SpecialEmojiPicker } from './SpecialEmojiPicker'
 import Image from 'next/image'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -30,6 +31,7 @@ export function LiveChat({ streamId, isLive }: LiveChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [userLevel, setUserLevel] = useState(1)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const previousIsLiveRef = useRef<boolean | undefined>(isLive)
@@ -81,6 +83,20 @@ export function LiveChat({ streamId, isLive }: LiveChatProps) {
       setLoading(false)
     }
   }, [streamId])
+
+  // Fetch user level for emoji picker
+  useEffect(() => {
+    if (user) {
+      fetch('/api/gamification/get-user-stats')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.level) {
+            setUserLevel(data.level)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [user])
 
   useEffect(() => {
     // Fetch initial messages
@@ -169,6 +185,28 @@ export function LiveChat({ streamId, isLive }: LiveChatProps) {
       } else {
         // Message was approved, refresh to show it
         fetchMessages()
+        
+        // Add XP for chatting
+        try {
+          const xpResponse = await fetch('/api/gamification/add-xp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'chat',
+              stream_id: streamId,
+            }),
+          })
+          
+          const xpData = await xpResponse.json()
+          if (xpData.success && xpData.leveled_up) {
+            toast.success(`¡Subiste al nivel ${xpData.level}! 🎉`)
+          }
+        } catch (error) {
+          // Silently fail XP addition
+          console.error('Error adding XP:', error)
+        }
       }
     } catch (error: any) {
       toast.error(error.message || 'Error al enviar mensaje')
@@ -246,6 +284,10 @@ export function LiveChat({ streamId, isLive }: LiveChatProps) {
       {user ? (
         <form onSubmit={handleSendMessage} className="p-4 border-t border-dark-800">
           <div className="flex gap-2">
+            <SpecialEmojiPicker
+              onSelect={(emoji) => setNewMessage((prev) => prev + emoji)}
+              currentLevel={userLevel}
+            />
             <input
               type="text"
               value={newMessage}

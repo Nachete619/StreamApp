@@ -6,6 +6,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { User, Video, Calendar, Edit2, Save, X, Upload, Heart, Share2, Settings, Globe, Twitter, Youtube, Eye } from 'lucide-react'
 import { EnhancedStreamCard } from '@/components/EnhancedStreamCard'
+import { XPDisplay } from '@/components/XPDisplay'
+import { BadgeDisplay } from '@/components/BadgeDisplay'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/client'
@@ -19,6 +21,8 @@ interface Profile {
   bio: string | null
   created_at: string
   cover_url?: string | null
+  total_xp?: number
+  level?: number
 }
 
 type TabType = 'home' | 'videos' | 'clips' | 'about'
@@ -34,6 +38,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [streams, setStreams] = useState<any[]>([])
   const [videos, setVideos] = useState<any[]>([])
+  const [badges, setBadges] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -94,6 +99,32 @@ export default function ProfilePage() {
         .limit(20)
 
       setVideos(videosData || [])
+
+      // Fetch badges
+      const { data: badgesData } = await (supabase
+        .from('user_badges') as any)
+        .select(`
+          badge_id,
+          unlocked_at,
+          badges:badge_id (
+            id,
+            name,
+            description,
+            icon
+          )
+        `)
+        .eq('user_id', id)
+
+      if (badgesData) {
+        const formattedBadges = badgesData.map((b: any) => ({
+          id: b.badges.id,
+          name: b.badges.name,
+          description: b.badges.description,
+          icon: b.badges.icon,
+          unlocked_at: b.unlocked_at,
+        }))
+        setBadges(formattedBadges)
+      }
     } catch (error: any) {
       console.error('Error fetching data:', error)
       toast.error('Error al cargar el perfil')
@@ -313,19 +344,40 @@ export default function ProfilePage() {
                   {profile.bio && (
                     <p className="text-dark-300 mb-4 max-w-2xl">{profile.bio}</p>
                   )}
-                  <div className="flex flex-wrap items-center gap-6 text-sm text-dark-400">
-                    <span className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Se unió hace {createdAt}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Video className="w-4 h-4" />
-                      {streams?.length || 0} streams
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Eye className="w-4 h-4" />
-                      {videos?.length || 0} videos
-                    </span>
+                  <div className="space-y-4">
+                    {/* XP and Level Display */}
+                    {profile.total_xp !== undefined && profile.level !== undefined && (
+                      <div>
+                        <XPDisplay
+                          totalXP={profile.total_xp || 0}
+                          level={profile.level || 1}
+                          showProgress={true}
+                          size="md"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Badges Display */}
+                    {badges.length > 0 && (
+                      <div>
+                        <BadgeDisplay badges={badges} maxDisplay={8} showTooltip={true} />
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-6 text-sm text-dark-400">
+                      <span className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Se unió hace {createdAt}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Video className="w-4 h-4" />
+                        {streams?.length || 0} streams
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Eye className="w-4 h-4" />
+                        {videos?.length || 0} videos
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
