@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Search, User, Video, Radio } from 'lucide-react'
 import { EnhancedStreamCard } from '@/components/EnhancedStreamCard'
 import Link from 'next/link'
 import Image from 'next/image'
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const query = searchParams.get('q') || ''
@@ -186,3 +186,19 @@ export default function SearchPage() {
   )
 }
 
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-accent-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-dark-400">Cargando búsqueda...</p>
+          </div>
+        </div>
+      }
+    >
+      <SearchContent />
+    </Suspense>
+  )
+}
