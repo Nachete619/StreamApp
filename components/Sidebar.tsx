@@ -52,7 +52,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-16 h-16 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               <Image 
-                src="/logo.png" 
+                src="/logo.svg" 
                 alt="StreamApp Logo" 
                 width={64} 
                 height={64} 
@@ -66,7 +66,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         {isCollapsed && (
           <div className="w-16 h-16 relative flex items-center justify-center mx-auto">
             <Image 
-              src="/logo.png" 
+              src="/logo.svg" 
               alt="StreamApp Logo" 
               width={64} 
               height={64} 

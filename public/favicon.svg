@@ -1,0 +1,84 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF4E6B;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#FF6B8A;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#FF8FA3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFB3C1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- S estilizada - Parte superior (triángulo play hacia la derecha) -->
+  <path d="M 30 25 
+           L 50 25 
+           L 50 35 
+           L 40 40 
+           L 30 35 
+           Z" 
+        fill="url(#logoGradient)" 
+        stroke="white" 
+        stroke-width="2"/>
+  
+  <!-- S estilizada - Curva superior -->
+  <path d="M 50 25 
+           C 60 25, 65 30, 65 40
+           C 65 45, 62 48, 58 48" 
+        fill="none" 
+        stroke="url(#logoGradient)" 
+        stroke-width="4" 
+        stroke-linecap="round"/>
+  
+  <!-- S estilizada - Parte central -->
+  <path d="M 58 48 
+           C 55 48, 52 50, 50 52
+           C 48 54, 47 56, 47 58
+           C 47 60, 48 62, 50 64
+           C 52 66, 55 68, 58 68" 
+        fill="none" 
+        stroke="url(#logoGradient)" 
+        stroke-width="4" 
+        stroke-linecap="round"/>
+  
+  <!-- S estilizada - Curva inferior -->
+  <path d="M 58 68 
+           C 62 68, 65 73, 65 80
+           C 65 85, 62 88, 58 88" 
+        fill="none" 
+        stroke="url(#logoGradient)" 
+        stroke-width="4" 
+        stroke-linecap="round"/>
+  
+  <!-- S estilizada - Parte inferior (triángulo play invertido hacia la izquierda) -->
+  <path d="M 58 88 
+           L 38 88 
+           L 38 78 
+           L 48 73 
+           L 58 78 
+           Z" 
+        fill="url(#logoGradient)" 
+        stroke="white" 
+        stroke-width="2"/>
+  
+  <!-- Borde blanco adicional para el efecto neón -->
+  <path d="M 30 25 
+           L 50 25 
+           L 50 35 
+           L 40 40 
+           L 30 35 
+           Z" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="1.5" 
+        opacity="0.8"/>
+  
+  <path d="M 58 88 
+           L 38 88 
+           L 38 78 
+           L 48 73 
+           L 58 78 
+           Z" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="1.5" 
+        opacity="0.8"/>
+</svg>

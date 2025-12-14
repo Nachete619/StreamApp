@@ -1,0 +1,111 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF4E6B;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#FF6B8A;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#FF8FA3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFB3C1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- S estilizada - Parte superior izquierda (tri�ngulo play) -->
+  <path d="M 25 30 
+           L 45 20 
+           L 45 30 
+           L 35 35 
+           L 25 30 
+           Z" 
+        fill="url(#logoGradient)" 
+        stroke="white" 
+        stroke-width="2"/>
+  
+  <!-- S estilizada - Curva superior que conecta -->
+  <path d="M 45 20 
+           C 55 20, 60 25, 60 35
+           C 60 40, 57 43, 53 43" 
+        fill="none" 
+        stroke="url(#logoGradient)" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+  
+  <!-- S estilizada - Parte central de la S -->
+  <path d="M 53 43 
+           C 50 43, 47 45, 45 47
+           C 43 49, 42 51, 42 53
+           C 42 55, 43 57, 45 59
+           C 47 61, 50 63, 53 63" 
+        fill="none" 
+        stroke="url(#logoGradient)" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+  
+  <!-- S estilizada - Curva inferior que conecta -->
+  <path d="M 53 63 
+           C 57 63, 60 68, 60 78
+           C 60 83, 57 86, 53 86" 
+        fill="none" 
+        stroke="url(#logoGradient)" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+  
+  <!-- S estilizada - Parte inferior derecha (tri�ngulo play invertido) -->
+  <path d="M 53 86 
+           L 33 96 
+           L 33 86 
+           L 43 81 
+           L 53 86 
+           Z" 
+        fill="url(#logoGradient)" 
+        stroke="white" 
+        stroke-width="2"/>
+  
+  <!-- Borde blanco para efecto ne�n m�s visible -->
+  <path d="M 25 30 
+           L 45 20 
+           L 45 30 
+           L 35 35 
+           L 25 30" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="1.5" 
+        opacity="0.9"/>
+  
+  <path d="M 45 20 
+           C 55 20, 60 25, 60 35
+           C 60 40, 57 43, 53 43" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="2" 
+        opacity="0.8"/>
+  
+  <path d="M 53 43 
+           C 50 43, 47 45, 45 47
+           C 43 49, 42 51, 42 53
+           C 42 55, 43 57, 45 59
+           C 47 61, 50 63, 53 63" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="2" 
+        opacity="0.8"/>
+  
+  <path d="M 53 63 
+           C 57 63, 60 68, 60 78
+           C 60 83, 57 86, 53 86" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="2" 
+        opacity="0.8"/>
+  
+  <path d="M 53 86 
+           L 33 96 
+           L 33 86 
+           L 43 81 
+           L 53 86" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="1.5" 
+        opacity="0.9"/>
+</svg>
