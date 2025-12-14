@@ -19,167 +19,225 @@ export function HLSPlayer({ playbackId, autoPlay = true }: HLSPlayerProps) {
     const video = videoRef.current
     if (!video) return
 
+    // Reset state when playbackId changes
+    setLoading(true)
+    setError(null)
+    retryCountRef.current = 0
+
     const hlsUrl = `https://livepeercdn.studio/hls/${playbackId}/index.m3u8`
     let hls: Hls | null = null
     let loadedMetadataHandler: (() => void) | null = null
+    let retryTimeout: NodeJS.Timeout | null = null
 
-    // Set timeout to stop loading after 15 seconds
+    // Set timeout to stop loading after 30 seconds (increased from 15)
+    // This gives Livepeer more time to make the manifest available after stream.started
     timeoutRef.current = setTimeout(() => {
       if (loading) {
-        console.warn('Stream loading timeout after 15 seconds')
+        console.warn('Stream loading timeout after 30 seconds')
         setLoading(false)
-        setError('El stream no está disponible en este momento. Por favor, espera unos segundos e intenta recargar.')
+        setError('El stream está iniciando. Por favor, espera unos segundos más e intenta recargar la página.')
       }
-    }, 15000)
+    }, 30000)
 
-    if (Hls.isSupported()) {
-      hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 90,
-        maxLoadingDelay: 4,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-      })
+    const attemptLoad = () => {
+      if (Hls.isSupported()) {
+        hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 90,
+          maxLoadingDelay: 8, // Increased to wait longer for segments
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          startLevel: -1, // Auto-select best quality
+        })
 
-      hls.loadSource(hlsUrl)
-      hls.attachMedia(video)
+        console.log('Loading HLS manifest:', hlsUrl)
+        hls.loadSource(hlsUrl)
+        hls.attachMedia(video)
 
-      const manifestHandler = () => {
-        console.log('Manifest parsed successfully')
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
-        }
-        setLoading(false)
-        setError(null)
-        retryCountRef.current = 0
-        if (autoPlay) {
-          video.play().catch((err) => {
-            console.error('Error playing video:', err)
-            setError('Error al reproducir el video')
-          })
-        }
-      }
-
-      hls.on(Hls.Events.MANIFEST_PARSED, manifestHandler)
-
-      // Handle when manifest is loaded but not parsed yet
-      hls.on(Hls.Events.MANIFEST_LOADED, () => {
-        console.log('Manifest loaded, waiting for parsing...')
-      })
-
-      const errorHandler = (_: any, data: any) => {
-        console.error('HLS Error:', data)
-        
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.error('Network error, trying to recover...', data)
-              retryCountRef.current += 1
-              
-              if (retryCountRef.current < 3) {
-                setTimeout(() => {
-                  hls?.startLoad()
-                }, 2000)
-              } else {
-                console.error('Max retries reached, stream may not be available')
-                if (timeoutRef.current) {
-                  clearTimeout(timeoutRef.current)
-                }
-                setLoading(false)
-                setError('El stream no está disponible. Asegúrate de que la transmisión esté activa.')
-                hls?.destroy()
-              }
-              break
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.error('Media error, trying to recover...', data)
-              try {
-                hls?.recoverMediaError()
-              } catch (e) {
-                console.error('Recovery failed:', e)
-                if (timeoutRef.current) {
-                  clearTimeout(timeoutRef.current)
-                }
-                setLoading(false)
-                setError('Error al cargar el stream')
-              }
-              break
-            default:
-              console.error('Fatal error, destroying HLS...', data)
-              if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current)
-              }
-              setLoading(false)
-              setError('Error al cargar el stream. Verifica que la transmisión esté activa.')
-              hls?.destroy()
-              break
+        const manifestHandler = () => {
+          console.log('✅ Manifest parsed successfully')
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
           }
-        } else {
-          // Non-fatal errors, just log them
-          console.warn('Non-fatal HLS error:', data)
+          if (retryTimeout) {
+            clearTimeout(retryTimeout)
+          }
+          setLoading(false)
+          setError(null)
+          retryCountRef.current = 0
+          if (autoPlay) {
+            video.play().catch((err) => {
+              console.error('Error playing video:', err)
+              setError('Error al reproducir el video')
+            })
+          }
         }
-      }
 
-      hls.on(Hls.Events.ERROR, errorHandler)
+        hls.on(Hls.Events.MANIFEST_PARSED, manifestHandler)
 
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
+        // Handle when manifest is loaded but not parsed yet
+        hls.on(Hls.Events.MANIFEST_LOADED, () => {
+          console.log('Manifest loaded, waiting for parsing...')
+        })
+
+        const errorHandler = (_: any, data: any) => {
+          console.error('HLS Error:', data.type, data.details, data.fatal)
+          
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.error('Network error, trying to recover...', data)
+                retryCountRef.current += 1
+                
+                // More aggressive retries - up to 10 attempts with increasing delays
+                if (retryCountRef.current < 10) {
+                  const delay = Math.min(2000 * retryCountRef.current, 10000) // 2s, 4s, 6s, 8s, 10s, 10s...
+                  console.log(`Retrying in ${delay}ms (attempt ${retryCountRef.current}/10)`)
+                  
+                  retryTimeout = setTimeout(() => {
+                    if (hls && video) {
+                      try {
+                        hls.startLoad()
+                      } catch (e) {
+                        console.error('Error restarting load:', e)
+                        // If restart fails, destroy and recreate
+                        hls.destroy()
+                        attemptLoad()
+                      }
+                    }
+                  }, delay)
+                } else {
+                  console.error('Max retries reached (10 attempts), stream may not be available yet')
+                  if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current)
+                  }
+                  setLoading(false)
+                  setError('El stream está iniciando. Por favor, espera unos segundos más e intenta recargar la página.')
+                  if (hls) {
+                    hls.destroy()
+                  }
+                }
+                break
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.error('Media error, trying to recover...', data)
+                try {
+                  hls?.recoverMediaError()
+                } catch (e) {
+                  console.error('Recovery failed:', e)
+                  // Try to restart load
+                  retryCountRef.current += 1
+                  if (retryCountRef.current < 5) {
+                    setTimeout(() => {
+                      hls?.startLoad()
+                    }, 3000)
+                  } else {
+                    if (timeoutRef.current) {
+                      clearTimeout(timeoutRef.current)
+                    }
+                    setLoading(false)
+                    setError('Error al cargar el stream. Verifica que la transmisión esté activa.')
+                  }
+                }
+                break
+              default:
+                console.error('Fatal error, destroying HLS...', data)
+                // For other fatal errors, try one more time after a delay
+                if (retryCountRef.current < 3) {
+                  retryCountRef.current += 1
+                  setTimeout(() => {
+                    if (hls) {
+                      hls.destroy()
+                    }
+                    attemptLoad()
+                  }, 5000)
+                } else {
+                  if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current)
+                  }
+                  setLoading(false)
+                  setError('Error al cargar el stream. Verifica que la transmisión esté activa.')
+                  if (hls) {
+                    hls.destroy()
+                  }
+                }
+                break
+            }
+          } else {
+            // Non-fatal errors, just log them
+            console.warn('Non-fatal HLS error:', data)
+          }
         }
-        if (hls) {
-          hls.off(Hls.Events.MANIFEST_PARSED, manifestHandler)
-          hls.off(Hls.Events.MANIFEST_LOADED, () => {})
-          hls.off(Hls.Events.ERROR, errorHandler)
-          hls.destroy()
+
+        hls.on(Hls.Events.ERROR, errorHandler)
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS support (Safari)
+        console.log('Using native HLS (Safari):', hlsUrl)
+        video.src = hlsUrl
+        
+        loadedMetadataHandler = () => {
+          console.log('✅ Metadata loaded (Safari)')
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+          }
+          setLoading(false)
+          setError(null)
+          retryCountRef.current = 0
+          if (autoPlay) {
+            video.play().catch((err) => {
+              console.error('Error playing video:', err)
+              setError('Error al reproducir el video')
+            })
+          }
         }
-      }
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS support (Safari)
-      video.src = hlsUrl
-      
-      loadedMetadataHandler = () => {
-        console.log('Metadata loaded (Safari)')
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
+        
+        const errorHandler = (e: Event) => {
+          console.error('Video error (Safari):', e)
+          retryCountRef.current += 1
+          
+          if (retryCountRef.current < 5) {
+            // Retry after delay
+            setTimeout(() => {
+              video.load()
+            }, 3000 * retryCountRef.current)
+          } else {
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current)
+            }
+            setLoading(false)
+            setError('El stream está iniciando. Por favor, espera unos segundos más e intenta recargar la página.')
+          }
         }
+        
+        video.addEventListener('loadedmetadata', loadedMetadataHandler)
+        video.addEventListener('error', errorHandler)
+      } else {
+        setError('Tu navegador no soporta la reproducción de streams HLS')
         setLoading(false)
-        setError(null)
-        retryCountRef.current = 0
-        if (autoPlay) {
-          video.play().catch((err) => {
-            console.error('Error playing video:', err)
-            setError('Error al reproducir el video')
-          })
-        }
       }
-      
-      const errorHandler = () => {
-        console.error('Video error (Safari)')
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
-        }
-        setLoading(false)
-        setError('El stream no está disponible. Verifica que la transmisión esté activa.')
-      }
-      
-      video.addEventListener('loadedmetadata', loadedMetadataHandler)
-      video.addEventListener('error', errorHandler)
+    }
 
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
-        }
-        if (loadedMetadataHandler) {
-          video.removeEventListener('loadedmetadata', loadedMetadataHandler)
-        }
-        video.removeEventListener('error', errorHandler)
+    // Start loading
+    attemptLoad()
+
+    // Cleanup function
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      if (retryTimeout) {
+        clearTimeout(retryTimeout)
+      }
+      if (hls) {
+        hls.destroy()
+      }
+      if (loadedMetadataHandler && video) {
+        video.removeEventListener('loadedmetadata', loadedMetadataHandler)
+        video.removeEventListener('error', () => {})
         video.src = ''
       }
-    } else {
-      setError('Tu navegador no soporta la reproducción de streams HLS')
-      setLoading(false)
     }
-  }, [playbackId, autoPlay, loading])
+  }, [playbackId, autoPlay])
 
   if (error) {
     return (
