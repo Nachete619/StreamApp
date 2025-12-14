@@ -15,22 +15,34 @@ export default async function FollowingPage() {
     redirect('/landing')
   }
 
+  // Get users that the current user is following
+  const { data: follows } = await (supabase
+    .from('follows') as any)
+    .select('following_id')
+    .eq('follower_id', user.id)
+
+  const followingIds = follows?.map((f: any) => f.following_id) || []
+
   // Fetch streams from followed channels
-  // Note: You'll need to implement a follows table for this to work properly
-  // For now, we'll show a placeholder
-  const { data: streams } = await (supabase
-    .from("streams") as any)
-    .select(`
-      *,
-      profiles:user_id (
-        id,
-        username,
-        avatar_url
-      )
-    `)
-    .eq("is_live", true)
-    .order("created_at", { ascending: false })
-    .limit(20)
+  let streams: any[] = []
+  if (followingIds.length > 0) {
+    const { data: streamsData } = await (supabase
+      .from("streams") as any)
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          username,
+          avatar_url
+        )
+      `)
+      .in("user_id", followingIds)
+      .eq("is_live", true)
+      .order("created_at", { ascending: false })
+      .limit(20)
+    
+    streams = streamsData || []
+  }
 
   return (
     <div className="min-h-screen bg-dark-950">
@@ -58,10 +70,14 @@ export default async function FollowingPage() {
                 <Heart className="w-10 h-10 text-accent-500" />
               </div>
               <h3 className="text-2xl font-bold text-dark-50 mb-3">
-                No estás siguiendo a nadie
+                {followingIds.length === 0 
+                  ? 'No estás siguiendo a nadie'
+                  : 'No hay streams en vivo'}
               </h3>
               <p className="text-dark-400 mb-6">
-                Descubre nuevos streamers y sigue tus canales favoritos para ver sus streams aquí
+                {followingIds.length === 0
+                  ? 'Descubre nuevos streamers y sigue tus canales favoritos para ver sus streams aquí'
+                  : 'Los streams de los canales que sigues aparecerán aquí cuando estén en vivo'}
               </p>
             </div>
           </div>

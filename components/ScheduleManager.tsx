@@ -38,10 +38,13 @@ export function ScheduleManager({ userId, isOwn = false }: ScheduleManagerProps)
 
   const fetchSchedules = async () => {
     try {
+      setLoading(true)
       const response = await fetch(`/api/schedules/get?user_id=${userId}&upcoming=false`)
       const data = await response.json()
       if (data.success) {
         setSchedules(data.schedules || [])
+      } else {
+        console.error('Error in response:', data)
       }
     } catch (error) {
       console.error('Error fetching schedules:', error)

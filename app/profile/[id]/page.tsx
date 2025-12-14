@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { User, Video, Calendar, Edit2, Save, X, Upload, Heart, Share2, Settings, Globe, Twitter, Youtube, Eye } from 'lucide-react'
+import { User, Video, Calendar, Edit2, Save, X, Upload, Heart, Share2, Settings, Globe, Twitter, Youtube, Eye, Users } from 'lucide-react'
 import { EnhancedStreamCard } from '@/components/EnhancedStreamCard'
 import { XPDisplay } from '@/components/XPDisplay'
 import { BadgeDisplay } from '@/components/BadgeDisplay'
@@ -40,6 +40,8 @@ export default function ProfilePage() {
   const [streams, setStreams] = useState<any[]>([])
   const [videos, setVideos] = useState<any[]>([])
   const [badges, setBadges] = useState<any[]>([])
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followStats, setFollowStats] = useState({ followers: 0, following: 0 })
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -126,13 +128,32 @@ export default function ProfilePage() {
         }))
         setBadges(formattedBadges)
       }
+
+      // Fetch follow status if not own profile
+      if (!isOwnProfile && currentUser) {
+        const followResponse = await fetch(`/api/follow/check?following_id=${id}`)
+        const followData = await followResponse.json()
+        if (followData.is_following !== undefined) {
+          setIsFollowing(followData.is_following)
+        }
+      }
+
+      // Fetch follow stats
+      const statsResponse = await fetch(`/api/follow/stats?user_id=${id}`)
+      const statsData = await statsResponse.json()
+      if (statsData.followers !== undefined) {
+        setFollowStats({
+          followers: statsData.followers || 0,
+          following: statsData.following || 0,
+        })
+      }
     } catch (error: any) {
       console.error('Error fetching data:', error)
       toast.error('Error al cargar el perfil')
     } finally {
       setLoading(false)
     }
-  }, [id, supabase])
+  }, [id, supabase, isOwnProfile, currentUser])
 
   useEffect(() => {
     fetchData()
@@ -436,6 +457,14 @@ export default function ProfilePage() {
                         Se unió hace {createdAt}
                       </span>
                       <span className="flex items-center gap-2">
+                        <Heart className="w-4 h-4" />
+                        {followStats.followers} seguidores
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Siguiendo {followStats.following}
+                      </span>
+                      <span className="flex items-center gap-2">
                         <Video className="w-4 h-4" />
                         {streams?.length || 0} streams
                       </span>
@@ -449,9 +478,47 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-3">
                   {!isOwnProfile && (
                     <>
-                      <button className="btn btn-primary flex items-center gap-2">
-                        <Heart className="w-4 h-4" />
-                        Seguir
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/follow/toggle', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                following_id: id,
+                              }),
+                            })
+
+                            const data = await response.json()
+
+                            if (!response.ok) {
+                              throw new Error(data.error || 'Error al seguir/dejar de seguir')
+                            }
+
+                            setIsFollowing(data.is_following)
+                            toast.success(data.is_following ? 'Ahora sigues a este usuario' : 'Dejaste de seguir a este usuario')
+                            
+                            // Refresh stats
+                            const statsResponse = await fetch(`/api/follow/stats?user_id=${id}`)
+                            const statsData = await statsResponse.json()
+                            if (statsData.followers !== undefined) {
+                              setFollowStats({
+                                followers: statsData.followers || 0,
+                                following: statsData.following || 0,
+                              })
+                            }
+                          } catch (error: any) {
+                            toast.error(error.message || 'Error al seguir/dejar de seguir')
+                          }
+                        }}
+                        className={`btn flex items-center gap-2 ${
+                          isFollowing ? 'btn-secondary' : 'btn-primary'
+                        }`}
+                      >
+                        <Heart className={`w-4 h-4 ${isFollowing ? 'fill-current' : ''}`} />
+                        {isFollowing ? 'Siguiendo' : 'Seguir'}
                       </button>
                       <button className="btn btn-secondary p-2">
                         <Share2 className="w-5 h-5" />
