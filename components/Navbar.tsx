@@ -13,6 +13,7 @@ export function Navbar() {
   const router = useRouter()
   const supabase = createClient()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,14 +45,24 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Search Bar - More Prominent */}
           <div className="flex-1 max-w-2xl">
-            <div className="relative">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (searchQuery.trim()) {
+                  router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+                }
+              }}
+              className="relative"
+            >
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-dark-400" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar streams, canales, categorías..."
                 className="w-full pl-12 pr-4 py-2.5 bg-dark-800/50 border border-dark-700 rounded-lg text-dark-50 placeholder-dark-500 focus:outline-none focus:ring-2 focus:ring-accent-600/50 focus:border-accent-600/50 transition-all"
               />
-            </div>
+            </form>
           </div>
 
           {/* Right Side Actions */}
