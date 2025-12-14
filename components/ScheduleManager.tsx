@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Calendar, Plus, X } from 'lucide-react'
 import { StreamScheduleCard } from './StreamScheduleCard'
 import toast from 'react-hot-toast'
@@ -36,7 +36,7 @@ export function ScheduleManager({ userId, isOwn = false }: ScheduleManagerProps)
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   })
 
-  const fetchSchedules = async () => {
+  const fetchSchedules = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/schedules/get?user_id=${userId}&upcoming=false`)
@@ -51,11 +51,11 @@ export function ScheduleManager({ userId, isOwn = false }: ScheduleManagerProps)
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId])
 
   useEffect(() => {
     fetchSchedules()
-  }, [userId])
+  }, [fetchSchedules])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

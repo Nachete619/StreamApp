@@ -88,7 +88,7 @@ export default function SearchPage() {
             {/* Results Summary */}
             <div className="mb-6">
               <h2 className="text-xl font-bold text-dark-50">
-                Resultados para "{results.query}"
+                Resultados para &quot;{results.query}&quot;
               </h2>
               <p className="text-sm text-dark-400 mt-1">
                 {results.total} resultado{results.total !== 1 ? 's' : ''} encontrado{results.total !== 1 ? 's' : ''}
