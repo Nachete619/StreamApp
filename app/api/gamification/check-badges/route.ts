@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
     )
 
     // Get user profile
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
+    const { data: profile } = await (supabaseAdmin
+      .from('profiles') as any)
       .select('total_xp, level')
       .eq('id', user.id)
       .single()
@@ -44,29 +44,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const profileData = profile as any
+    const userLevel = profileData.level || 1
+    const totalXP = profileData.total_xp || 0
+
     // Get user's current badges
-    const { data: userBadges } = await supabaseAdmin
-      .from('user_badges')
+    const { data: userBadges } = await (supabaseAdmin
+      .from('user_badges') as any)
       .select('badge_id')
       .eq('user_id', user.id)
 
     const ownedBadgeIds = new Set((userBadges || []).map((b: any) => b.badge_id))
 
     // Get action counts
-    const { count: watchCount } = await supabaseAdmin
-      .from('user_stream_views')
+    const { count: watchCount } = await (supabaseAdmin
+      .from('user_stream_views') as any)
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
 
-    const { count: chatCount } = await supabaseAdmin
-      .from('messages')
+    const { count: chatCount } = await (supabaseAdmin
+      .from('messages') as any)
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('hidden', false)
 
     // Get all badges
-    const { data: allBadges } = await supabaseAdmin
-      .from('badges')
+    const { data: allBadges } = await (supabaseAdmin
+      .from('badges') as any)
       .select('*')
 
     const newlyUnlocked: any[] = []
@@ -79,10 +83,10 @@ export async function POST(request: NextRequest) {
 
       switch (badge.requirement_type) {
         case 'level':
-          shouldUnlock = profile.level >= badge.requirement_value
+          shouldUnlock = userLevel >= badge.requirement_value
           break
         case 'xp':
-          shouldUnlock = profile.total_xp >= badge.requirement_value
+          shouldUnlock = totalXP >= badge.requirement_value
           break
         case 'action_count':
           // This is simplified - you might want to track specific actions
@@ -94,8 +98,8 @@ export async function POST(request: NextRequest) {
 
       if (shouldUnlock) {
         // Unlock badge
-        await supabaseAdmin
-          .from('user_badges')
+        await (supabaseAdmin
+          .from('user_badges') as any)
           .insert({
             user_id: user.id,
             badge_id: badge.id,

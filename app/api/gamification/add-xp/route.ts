@@ -81,8 +81,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current profile
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
+    const { data: profile, error: profileError } = await (supabaseAdmin
+      .from('profiles') as any)
       .select('total_xp, level')
       .eq('id', user.id)
       .single()
@@ -95,7 +95,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate new XP and level
-    const newXP = profile.total_xp + xpReward
+    const currentXP = (profile as any).total_xp || 0
+    const newXP = currentXP + xpReward
     const newLevel = calculateLevel(newXP)
 
     // Update profile with new XP and level
@@ -116,8 +117,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Log XP gain
-    await supabaseAdmin
-      .from('user_xp_log')
+    await (supabaseAdmin
+      .from('user_xp_log') as any)
       .insert({
         user_id: user.id,
         xp_amount: xpReward,
@@ -126,7 +127,8 @@ export async function POST(request: NextRequest) {
       })
 
     // Check for new badges (this will be handled by a separate function)
-    const leveledUp = newLevel > profile.level
+    const previousLevel = (profile as any).level || 1
+    const leveledUp = newLevel > previousLevel
 
     return NextResponse.json({
       success: true,
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest) {
       total_xp: newXP,
       level: newLevel,
       leveled_up: leveledUp,
-      previous_level: profile.level,
+      previous_level: previousLevel,
     })
   } catch (error: any) {
     console.error('Add XP error:', error)

@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user profile with XP and level
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    const { data: profile, error: profileError } = await (supabase
+      .from('profiles') as any)
       .select('total_xp, level')
       .eq('id', user.id)
       .single()
@@ -32,9 +32,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const userLevel = (profile as any).level || 1
+    const totalXP = (profile as any).total_xp || 0
+
     // Get user badges
-    const { data: badges } = await supabase
-      .from('user_badges')
+    const { data: badges } = await (supabase
+      .from('user_badges') as any)
       .select(`
         badge_id,
         unlocked_at,
@@ -48,10 +51,10 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
 
     // Get unlocked special emojis (based on level)
-    const { data: emojis } = await supabase
-      .from('special_emojis')
+    const { data: emojis } = await (supabase
+      .from('special_emojis') as any)
       .select('*')
-      .lte('unlock_level', profile.level)
+      .lte('unlock_level', userLevel)
       .order('unlock_level', { ascending: true })
 
     // Get action counts
@@ -67,8 +70,8 @@ export async function GET(request: NextRequest) {
       .eq('hidden', false)
 
     return NextResponse.json({
-      total_xp: profile.total_xp || 0,
-      level: profile.level || 1,
+      total_xp: totalXP,
+      level: userLevel,
       badges: badges?.map((b: any) => ({
         id: b.badges.id,
         name: b.badges.name,
