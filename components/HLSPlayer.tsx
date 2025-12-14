@@ -29,17 +29,67 @@ export function HLSPlayer({ playbackId, autoPlay = true }: HLSPlayerProps) {
     let loadedMetadataHandler: (() => void) | null = null
     let retryTimeout: NodeJS.Timeout | null = null
 
+    // First, verify the manifest URL is accessible
+    const verifyManifest = async () => {
+      try {
+        console.log('🔍 Verifying manifest availability:', hlsUrl)
+        // Use GET instead of HEAD to avoid CORS issues
+        const response = await fetch(hlsUrl, { 
+          method: 'GET', 
+          cache: 'no-cache',
+          headers: {
+            'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, video/mp2t'
+          }
+        })
+        console.log('📡 Manifest check response:', response.status, response.statusText)
+        
+        if (response.status === 404) {
+          console.warn('⚠️ Manifest not found (404) - stream is not transmitting data')
+          return false
+        }
+        if (!response.ok) {
+          console.warn(`⚠️ Manifest check failed: ${response.status}`)
+          return false
+        }
+        const text = await response.text()
+        if (text.includes('#EXTM3U')) {
+          console.log('✅ Manifest is accessible and valid')
+          return true
+        } else {
+          console.warn('⚠️ Manifest response is not valid M3U8 format')
+          return false
+        }
+      } catch (error: any) {
+        console.error('❌ Error checking manifest:', error)
+        // If it's a network error, the stream might not be active
+        if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+          console.warn('⚠️ Network error - stream may not be transmitting')
+        }
+        return false
+      }
+    }
+
     // Set timeout to stop loading after 30 seconds (increased from 15)
     // This gives Livepeer more time to make the manifest available after stream.started
     timeoutRef.current = setTimeout(() => {
       if (loading) {
-        console.warn('Stream loading timeout after 30 seconds')
+        console.warn('⏱️ Stream loading timeout after 30 seconds')
         setLoading(false)
-        setError('El stream está iniciando. Por favor, espera unos segundos más e intenta recargar la página.')
+        setError('El stream no está transmitiendo datos. Verifica que OBS o tu software de streaming esté enviando datos a Livepeer.')
       }
     }, 30000)
 
-    const attemptLoad = () => {
+    const attemptLoad = async () => {
+      // Verify manifest before attempting to load (only on first attempt)
+      if (retryCountRef.current === 0) {
+        const manifestAvailable = await verifyManifest()
+        if (!manifestAvailable) {
+          console.warn('⚠️ Manifest not available - stream may not be transmitting')
+          // Still try to load, but with reduced retries
+          retryCountRef.current = 5 // Start at attempt 5 to reduce retries
+        }
+      }
+
       if (Hls.isSupported()) {
         hls = new Hls({
           enableWorker: true,
@@ -51,7 +101,7 @@ export function HLSPlayer({ playbackId, autoPlay = true }: HLSPlayerProps) {
           startLevel: -1, // Auto-select best quality
         })
 
-        console.log('Loading HLS manifest:', hlsUrl)
+        console.log('📺 Loading HLS manifest:', hlsUrl)
         hls.loadSource(hlsUrl)
         hls.attachMedia(video)
 
@@ -108,12 +158,12 @@ export function HLSPlayer({ playbackId, autoPlay = true }: HLSPlayerProps) {
                     }
                   }, delay)
                 } else {
-                  console.error('Max retries reached (10 attempts), stream may not be available yet')
+                  console.error('❌ Max retries reached (10 attempts)')
                   if (timeoutRef.current) {
                     clearTimeout(timeoutRef.current)
                   }
                   setLoading(false)
-                  setError('El stream está iniciando. Por favor, espera unos segundos más e intenta recargar la página.')
+                  setError('El stream no está transmitiendo datos. Verifica que OBS o tu software de streaming esté configurado correctamente y enviando datos a Livepeer.')
                   if (hls) {
                     hls.destroy()
                   }

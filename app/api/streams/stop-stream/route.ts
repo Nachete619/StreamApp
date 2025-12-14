@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { livepeer } from '@/lib/livepeer'
+import { getLivepeerClient } from '@/lib/livepeer'
 
 export async function PATCH(request: NextRequest) {
   try {
