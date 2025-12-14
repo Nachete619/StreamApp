@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, Video, Users, Zap, Shield, Sparkles, TrendingUp, Globe } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -75,8 +76,15 @@ export default function LandingPage() {
                 isVisible ? 'animate-scale-in opacity-100' : 'opacity-0 scale-90'
               }`}
             >
-              <div className="w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-600/50 animate-glow group">
-                <Video className="w-7 h-7 text-white animate-float" />
+              <div className="w-12 h-12 relative flex items-center justify-center animate-glow group">
+                <Image 
+                  src="/logo.png" 
+                  alt="StreamApp Logo" 
+                  width={48} 
+                  height={48} 
+                  className="object-contain animate-float"
+                  priority
+                />
               </div>
               <span className="text-3xl font-bold text-gradient animate-shimmer bg-clip-text bg-[length:200%_auto] bg-gradient-to-r from-accent-500 via-accent-600 to-accent-500">
                 StreamApp

@@ -59,3 +59,4 @@ export function getXPReward(action: ActionType): number {
   return XP_REWARDS[action.toUpperCase() as keyof typeof XP_REWARDS] || 0
 }
 
+

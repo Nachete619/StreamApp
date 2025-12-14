@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
-import { Video } from 'lucide-react'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -76,8 +76,15 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-accent-500 to-primary-500 rounded-lg flex items-center justify-center">
-              <Video className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 relative flex items-center justify-center">
+              <Image 
+                src="/logo.png" 
+                alt="StreamApp Logo" 
+                width={40} 
+                height={40} 
+                className="object-contain"
+                priority
+              />
             </div>
             <span className="text-2xl font-bold text-gradient">StreamApp</span>
           </Link>

@@ -172,3 +172,4 @@ Para verificar que todo funciona:
 4. Verifica que el XP aumente en el dashboard o perfil
 5. Sube de nivel y verifica que se desbloqueen insignias y emojis
 
+

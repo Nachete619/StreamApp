@@ -157,3 +157,4 @@ Para verificar que todo funciona:
 - Las imágenes antiguas no se eliminan automáticamente (puedes implementar limpieza si es necesario)
 - Los buckets públicos permiten acceso directo a las URLs sin autenticación
 
+
