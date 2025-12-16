@@ -18,16 +18,26 @@ export default function SchedulesPage() {
 
     const supabase = createClient()
     try {
+      setLoading(true)
       // Obtener los IDs de los usuarios que el usuario actual sigue
-      const { data: follows } = await (supabase
+      const { data: follows, error: followsError } = await (supabase
         .from('follows') as any)
         .select('following_id')
         .eq('follower_id', user.id)
 
+      if (followsError) {
+        console.error('Error fetching follows:', followsError)
+        setSchedules([])
+        setLoading(false)
+        return
+      }
+
       const followingIds = follows?.map((f: any) => f.following_id) || []
+      console.log('Following IDs:', followingIds)
 
       // Si no sigue a nadie, mostrar mensaje vacío
       if (followingIds.length === 0) {
+        console.log('No following anyone')
         setSchedules([])
         setLoading(false)
         return
@@ -35,13 +45,35 @@ export default function SchedulesPage() {
 
       // Obtener los schedules de los usuarios seguidos
       const followingIdsParam = followingIds.join(',')
-      const response = await fetch(`/api/schedules/get?upcoming=true&following_ids=${followingIdsParam}`)
+      console.log('Fetching schedules for following_ids:', followingIdsParam)
+      const url = `/api/schedules/get?upcoming=true&following_ids=${encodeURIComponent(followingIdsParam)}`
+      console.log('Request URL:', url)
+      
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        console.error('Response not OK:', response.status, response.statusText)
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Error data:', errorData)
+        setSchedules([])
+        return
+      }
+      
       const data = await response.json()
+      console.log('Schedules response:', data)
+      
       if (data.success) {
-        setSchedules(data.schedules || [])
+        const schedulesList = data.schedules || []
+        console.log('Schedules loaded:', schedulesList.length)
+        console.log('Schedules data:', schedulesList)
+        setSchedules(schedulesList)
+      } else {
+        console.error('Error in schedules response:', data.error)
+        setSchedules([])
       }
     } catch (error) {
       console.error('Error fetching schedules:', error)
+      setSchedules([])
     } finally {
       setLoading(false)
     }

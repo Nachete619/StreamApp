@@ -21,11 +21,19 @@ export async function GET(request: NextRequest) {
 
     // Si se proporcionan IDs de usuarios seguidos, filtrar por ellos (tiene prioridad sobre userId)
     if (followingIdsParam) {
-      const followingIds = followingIdsParam.split(',').filter(id => id.trim() !== '')
+      const followingIds = followingIdsParam
+        .split(',')
+        .map(id => id.trim())
+        .filter(id => id !== '' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+      
+      console.log('Filtering by following_ids:', followingIds)
+      console.log('Following IDs count:', followingIds.length)
+      
       if (followingIds.length > 0) {
         query = query.in('user_id', followingIds)
       } else {
         // Si no hay IDs válidos, retornar array vacío
+        console.log('No valid following IDs after filtering')
         return NextResponse.json({
           success: true,
           schedules: [],
@@ -42,6 +50,7 @@ export async function GET(request: NextRequest) {
     // Si no hay userId ni followingIds, por defecto mostrar solo futuros
     if (upcoming) {
       const now = new Date().toISOString()
+      console.log('Filtering by upcoming, now:', now)
       query = query.gte('scheduled_start', now)
     } else if (!userId && !followingIdsParam) {
       // Si no hay filtro de usuario, por defecto mostrar solo futuros
@@ -55,12 +64,15 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Error fetching schedules:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch schedules' },
+        { error: 'Failed to fetch schedules', details: error.message },
         { status: 500 }
       )
     }
 
+    console.log('Schedules found:', schedules?.length || 0)
+
     if (!schedules || schedules.length === 0) {
+      console.log('No schedules found')
       return NextResponse.json({
         success: true,
         schedules: [],
