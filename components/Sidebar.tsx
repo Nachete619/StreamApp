@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 import { 
   Home, 
   Users, 
@@ -17,15 +18,25 @@ import {
   Calendar
 } from 'lucide-react'
 import { useAuth } from './Providers'
+import { createClient } from '@/lib/supabase/client'
 
 interface SidebarProps {
   isCollapsed: boolean
   onToggle: () => void
 }
 
+interface FollowingChannel {
+  id: string
+  username: string
+  avatar_url: string | null
+  is_live: boolean
+}
+
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const { user } = useAuth()
+  const [followingChannels, setFollowingChannels] = useState<FollowingChannel[]>([])
+  const [loadingChannels, setLoadingChannels] = useState(true)
 
   const navigationItems = [
     { icon: Home, label: 'Inicio', href: '/', badge: null },
@@ -38,6 +49,97 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     if (href === '/') return pathname === '/'
     return pathname?.startsWith(href)
   }
+
+  useEffect(() => {
+    const fetchFollowingChannels = async () => {
+      if (!user) {
+        setFollowingChannels([])
+        setLoadingChannels(false)
+        return
+      }
+
+      try {
+        const supabase = createClient()
+        
+        // Obtener los IDs de los usuarios que el usuario actual sigue
+        const { data: follows, error: followsError } = await (supabase
+          .from('follows') as any)
+          .select('following_id')
+          .eq('follower_id', user.id)
+
+        if (followsError) {
+          console.error('Error fetching follows:', followsError)
+          setFollowingChannels([])
+          setLoadingChannels(false)
+          return
+        }
+
+        const followingIds = follows?.map((f: any) => f.following_id) || []
+
+        if (followingIds.length === 0) {
+          setFollowingChannels([])
+          setLoadingChannels(false)
+          return
+        }
+
+        // Obtener los perfiles de los usuarios seguidos
+        const { data: profiles, error: profilesError } = await (supabase
+          .from('profiles') as any)
+          .select('id, username, avatar_url')
+          .in('id', followingIds)
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError)
+          setFollowingChannels([])
+          setLoadingChannels(false)
+          return
+        }
+
+        // Obtener los streams activos de los usuarios seguidos
+        const { data: streams, error: streamsError } = await (supabase
+          .from('streams') as any)
+          .select('user_id, is_live')
+          .in('user_id', followingIds)
+          .eq('is_live', true)
+
+        if (streamsError) {
+          console.error('Error fetching streams:', streamsError)
+        }
+
+        // Crear un mapa de usuarios que están en vivo
+        const liveUserIds = new Set((streams || []).map((s: any) => s.user_id))
+
+        // Combinar perfiles con estado de stream
+        const channels: FollowingChannel[] = (profiles || []).map((profile: any) => ({
+          id: profile.id,
+          username: profile.username,
+          avatar_url: profile.avatar_url,
+          is_live: liveUserIds.has(profile.id),
+        }))
+
+        // Ordenar: primero los que están en vivo, luego los offline
+        channels.sort((a, b) => {
+          if (a.is_live && !b.is_live) return -1
+          if (!a.is_live && b.is_live) return 1
+          return a.username.localeCompare(b.username)
+        })
+
+        setFollowingChannels(channels)
+      } catch (error) {
+        console.error('Error fetching following channels:', error)
+        setFollowingChannels([])
+      } finally {
+        setLoadingChannels(false)
+      }
+    }
+
+    fetchFollowingChannels()
+
+    // Refrescar cada 30 segundos para actualizar el estado de los streams
+    const interval = setInterval(fetchFollowingChannels, 30000)
+
+    return () => clearInterval(interval)
+  }, [user])
 
   return (
     <aside
@@ -139,23 +241,57 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                   Tus Canales
                 </p>
               )}
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors cursor-pointer group"
-                    title={isCollapsed ? 'Canal' : ''}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex-shrink-0" />
-                    {!isCollapsed && (
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-dark-200 truncate">Canal {i}</p>
-                        <p className="text-xs text-dark-500">Offline</p>
-                      </div>
-                    )}
+              {loadingChannels ? (
+                <div className="px-3 py-2">
+                  <div className="w-8 h-8 border-2 border-accent-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                </div>
+              ) : followingChannels.length === 0 ? (
+                !isCollapsed && (
+                  <div className="px-3 py-2 text-center">
+                    <p className="text-xs text-dark-500">No sigues a nadie</p>
                   </div>
-                ))}
-              </div>
+                )
+              ) : (
+                <div className="space-y-2">
+                  {followingChannels.map((channel) => (
+                    <Link
+                      key={channel.id}
+                      href={`/profile/${channel.id}`}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors cursor-pointer group"
+                      title={isCollapsed ? channel.username : ''}
+                    >
+                      <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex-shrink-0 overflow-hidden">
+                        {channel.avatar_url ? (
+                          <Image
+                            src={channel.avatar_url}
+                            alt={channel.username}
+                            width={32}
+                            height={32}
+                            className="object-cover w-full h-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                        {channel.is_live && (
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-red-600 rounded-full border-2 border-dark-900" />
+                        )}
+                      </div>
+                      {!isCollapsed && (
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-dark-200 truncate">
+                            {channel.username}
+                          </p>
+                          <p className={`text-xs ${channel.is_live ? 'text-red-500' : 'text-dark-500'}`}>
+                            {channel.is_live ? 'En vivo' : 'Offline'}
+                          </p>
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
