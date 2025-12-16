@@ -48,11 +48,37 @@ export default async function Home() {
   }
 
 
-  // Top categories (hardcoded for now, can be dynamic later)
+  // Calculate real category data
+  const calculateCategoryStats = async (categorySlug: string) => {
+    const { data: categoryStreams } = await (supabase
+      .from('streams') as any)
+      .select('id')
+      .eq('is_live', true)
+      .eq('category', categorySlug)
+
+    const streamCount = categoryStreams?.length || 0
+    // Estimate viewers: average of 100-300 viewers per stream
+    // This is a placeholder - in production you'd track real viewer counts
+    const estimatedViewers = streamCount > 0 
+      ? streamCount * 150 // Average 150 viewers per stream
+      : 0
+
+    return {
+      streams: streamCount,
+      viewers: estimatedViewers,
+    }
+  }
+
+  const [gamingStats, musicStats, codingStats] = await Promise.all([
+    calculateCategoryStats('gaming'),
+    calculateCategoryStats('music'),
+    calculateCategoryStats('coding'),
+  ])
+
   const topCategories = [
-    { name: 'Gaming', slug: 'gaming', iconName: 'gaming', viewers: 15234, streams: 234 },
-    { name: 'Música', slug: 'music', iconName: 'music', viewers: 8932, streams: 156 },
-    { name: 'Programación', slug: 'coding', iconName: 'coding', viewers: 12345, streams: 189 },
+    { name: 'Gaming', slug: 'gaming', iconName: 'gaming', viewers: gamingStats.viewers, streams: gamingStats.streams },
+    { name: 'Música', slug: 'music', iconName: 'music', viewers: musicStats.viewers, streams: musicStats.streams },
+    { name: 'Programación', slug: 'coding', iconName: 'coding', viewers: codingStats.viewers, streams: codingStats.streams },
   ];
 
   return (

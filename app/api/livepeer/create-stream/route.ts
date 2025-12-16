@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title } = body
+    const { title, category } = body
 
     if (!title || typeof title !== 'string') {
       return NextResponse.json(
@@ -28,6 +28,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Validate category
+    const validCategories = ['gaming', 'music', 'coding']
+    const streamCategory = category && validCategories.includes(category) ? category : 'gaming'
 
     // Validate API key before making request
     const apiKey = process.env.LIVEPEER_API_KEY || process.env.NEXT_PUBLIC_LIVEPEER_API_KEY
@@ -124,6 +128,7 @@ export async function POST(request: NextRequest) {
         ingest_url: ingestUrl,
         playback_id: stream.playbackId || '',
         is_live: false,
+        category: streamCategory,
       })
       .select()
       .single()

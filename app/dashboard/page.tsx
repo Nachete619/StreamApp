@@ -47,6 +47,7 @@ export default function DashboardPage() {
   const [generatingSummary, setGeneratingSummary] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
+    category: 'gaming',
   })
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editingTitle, setEditingTitle] = useState('')
@@ -210,6 +211,11 @@ export default function DashboardPage() {
       return
     }
 
+    if (!formData.category) {
+      toast.error('Por favor selecciona una categoría')
+      return
+    }
+
     setCreating(true)
     try {
       const response = await fetch('/api/livepeer/create-stream', {
@@ -217,7 +223,10 @@ export default function DashboardPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title: formData.title }),
+        body: JSON.stringify({ 
+          title: formData.title,
+          category: formData.category,
+        }),
       })
 
       const data = await response.json()
@@ -227,7 +236,7 @@ export default function DashboardPage() {
       }
 
       toast.success('Stream creado exitosamente')
-      setFormData({ title: '' })
+      setFormData({ title: '', category: 'gaming' })
       fetchStream()
     } catch (error: any) {
       toast.error(error.message || 'Error al crear stream')
@@ -399,6 +408,23 @@ export default function DashboardPage() {
                     placeholder="¿Sobre qué vas a transmitir hoy?"
                     maxLength={100}
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-dark-300 mb-2">
+                    Categoría
+                  </label>
+                  <select
+                    id="category"
+                    required
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="input text-lg"
+                  >
+                    <option value="gaming">Gaming</option>
+                    <option value="music">Música</option>
+                    <option value="coding">Programación</option>
+                  </select>
                 </div>
 
                 <button
