@@ -14,19 +14,7 @@ export async function GET(request: NextRequest) {
 
     let query = (supabase
       .from('stream_schedules') as any)
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          username,
-          avatar_url
-        ),
-        streams:stream_id (
-          id,
-          title,
-          playback_id
-        )
-      `)
+      .select('*')
       .eq('is_active', true)
       .order('scheduled_start', { ascending: true })
       .limit(limit)
@@ -72,9 +60,57 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    if (!schedules || schedules.length === 0) {
+      return NextResponse.json({
+        success: true,
+        schedules: [],
+      })
+    }
+
+    // Get unique user IDs and stream IDs
+    const userIds = [...new Set(schedules.map((s: any) => s.user_id).filter(Boolean))]
+    const streamIds = [...new Set(schedules.map((s: any) => s.stream_id).filter(Boolean))]
+
+    // Fetch profiles for all users
+    let profilesMap = new Map()
+    if (userIds.length > 0) {
+      const { data: profiles } = await (supabase
+        .from('profiles') as any)
+        .select('id, username, avatar_url')
+        .in('id', userIds)
+
+      if (profiles) {
+        profiles.forEach((profile: any) => {
+          profilesMap.set(profile.id, profile)
+        })
+      }
+    }
+
+    // Fetch streams if needed
+    let streamsMap = new Map()
+    if (streamIds.length > 0) {
+      const { data: streams } = await (supabase
+        .from('streams') as any)
+        .select('id, title, playback_id')
+        .in('id', streamIds)
+
+      if (streams) {
+        streams.forEach((stream: any) => {
+          streamsMap.set(stream.id, stream)
+        })
+      }
+    }
+
+    // Combine schedules with profiles and streams
+    const schedulesWithRelations = schedules.map((schedule: any) => ({
+      ...schedule,
+      profiles: profilesMap.get(schedule.user_id) || null,
+      streams: schedule.stream_id ? (streamsMap.get(schedule.stream_id) || null) : null,
+    }))
+
     return NextResponse.json({
       success: true,
-      schedules: schedules || [],
+      schedules: schedulesWithRelations,
     })
   } catch (error: any) {
     console.error('Get schedules error:', error)

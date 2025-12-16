@@ -95,14 +95,7 @@ export async function PATCH(request: NextRequest) {
       .from('stream_schedules') as any)
       .update(updateData)
       .eq('id', schedule_id)
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          username,
-          avatar_url
-        )
-      `)
+      .select('*')
       .single()
 
     if (updateError) {
@@ -113,9 +106,21 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    // Fetch profile for the schedule
+    const { data: profile } = await (supabase
+      .from('profiles') as any)
+      .select('id, username, avatar_url')
+      .eq('id', schedule.user_id)
+      .single()
+
+    const scheduleWithProfile = {
+      ...schedule,
+      profiles: profile || null,
+    }
+
     return NextResponse.json({
       success: true,
-      schedule,
+      schedule: scheduleWithProfile,
     })
   } catch (error: any) {
     console.error('Update schedule error:', error)
