@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { 
   Home, 
@@ -14,8 +13,7 @@ import {
   Radio,
   User,
   Heart,
-  TrendingUp,
-  Calendar
+  TrendingUp
 } from 'lucide-react'
 import { useAuth } from './Providers'
 
@@ -32,7 +30,6 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     { icon: Home, label: 'Inicio', href: '/', badge: null },
     { icon: Heart, label: 'Siguiendo', href: '/following', badge: null },
     { icon: Compass, label: 'Explorar', href: '/explore', badge: null },
-    { icon: Calendar, label: 'Schedules', href: '/schedules', badge: null },
   ]
 
   const isActive = (href: string) => {
@@ -50,29 +47,15 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       <div className="h-16 flex items-center justify-between px-4 border-b border-dark-800">
         {!isCollapsed && (
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-16 h-16 relative flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-              <Image 
-                src="/logo.png" 
-                alt="StreamApp Logo" 
-                width={64} 
-                height={64} 
-                className="object-contain logo-neon"
-                priority
-              />
+            <div className="w-8 h-8 bg-gradient-to-br from-accent-500 to-accent-600 rounded-lg flex items-center justify-center shadow-lg shadow-accent-600/30 group-hover:shadow-accent-500/50 transition-all">
+              <Video className="w-5 h-5 text-white" />
             </div>
             <span className="text-lg font-bold text-gradient">StreamApp</span>
           </Link>
         )}
         {isCollapsed && (
-          <div className="w-16 h-16 relative flex items-center justify-center mx-auto">
-            <Image 
-              src="/logo.png" 
-              alt="StreamApp Logo" 
-              width={64} 
-              height={64} 
-              className="object-contain logo-neon"
-              priority
-            />
+          <div className="w-8 h-8 bg-gradient-to-br from-accent-500 to-accent-600 rounded-lg flex items-center justify-center shadow-lg shadow-accent-600/30 mx-auto">
+            <Video className="w-5 h-5 text-white" />
           </div>
         )}
         <button

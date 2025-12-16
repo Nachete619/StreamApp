@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getLivepeerClient } from '@/lib/livepeer'
+import { livepeer } from '@/lib/livepeer'
 import { createServerClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
@@ -39,14 +39,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Log API key info for debugging (masked)
-    const maskedKey = apiKey.length > 14 
-      ? `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}`
-      : '***'
-    console.log(`🔑 Using Livepeer API Key: ${maskedKey} (length: ${apiKey.length})`)
-
-    // Create stream in Livepeer (use getLivepeerClient to ensure latest API key)
-    const livepeer = getLivepeerClient()
+    // Create stream in Livepeer
     let streamResponse
     try {
       streamResponse = await livepeer.stream.create({

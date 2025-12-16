@@ -1,109 +1,48 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { createServerClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import { HLSPlayer } from '@/components/HLSPlayer'
 import { LiveChat } from '@/components/LiveChat'
-import { StreamViewTracker } from '@/components/StreamViewTracker'
 import { User, Eye, Heart, Share2, Video } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 
-export default function StreamPage() {
-  const params = useParams()
-  const username = params.username as string
-  const supabase = createClient()
-  
-  const [profile, setProfile] = useState<any>(null)
-  const [stream, setStream] = useState<any>(null)
-  const [videos, setVideos] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Get profile by username
-        const { data: profileData } = await (supabase
-          .from('profiles') as any)
-          .select('*')
-          .eq('username', username)
-          .single()
-
-        if (!profileData) {
-          window.location.href = '/'
-          return
-        }
-
-        setProfile(profileData)
-
-        // Get stream
-        const { data: streamData } = await (supabase
-          .from('streams') as any)
-          .select('*')
-          .eq('user_id', profileData.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        setStream(streamData)
-
-        // Get videos
-        const { data: videosData } = await (supabase
-          .from('videos') as any)
-          .select('*')
-          .eq('user_id', profileData.id)
-          .order('created_at', { ascending: false })
-          .limit(6)
-
-        setVideos(videosData || [])
-      } catch (error) {
-        console.error('Error fetching data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-
-    // Poll for stream updates every 5 seconds if stream exists and is marked as live
-    const interval = setInterval(async () => {
-      if (profile) {
-        try {
-          const { data } = await (supabase
-            .from('streams') as any)
-            .select('*')
-            .eq('user_id', profile.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          
-          if (data) {
-            setStream(data)
-          }
-        } catch (error) {
-          console.error('Error polling stream:', error)
-        }
-      }
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [username, supabase, profile?.id])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-accent-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-dark-400">Cargando...</p>
-        </div>
-      </div>
-    )
+interface PageProps {
+  params: {
+    username: string
   }
+}
+
+export default async function StreamPage({ params }: PageProps) {
+  const supabase = await createServerClient()
+  const { username } = params
+
+  // Get profile by username
+  const { data: profile } = await (supabase
+    .from('profiles') as any)
+    .select('*')
+    .eq('username', username)
+    .single()
 
   if (!profile) {
-    return null
+    redirect('/')
   }
+
+  // Get stream
+  const { data: stream } = await (supabase
+    .from('streams') as any)
+    .select('*')
+    .eq('user_id', (profile as any).id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  // Get videos
+  const { data: videos } = await (supabase
+    .from('videos') as any)
+    .select('*')
+    .eq('user_id', (profile as any).id)
+    .order('created_at', { ascending: false })
+    .limit(6)
 
   return (
     <div className="min-h-screen bg-dark-950">
@@ -114,10 +53,7 @@ export default function StreamPage() {
             {/* Video Player */}
             <div className="relative aspect-video bg-dark-900 rounded-lg overflow-hidden border border-dark-800">
               {stream && stream.is_live && stream.playback_id ? (
-                <>
-                  <HLSPlayer playbackId={stream.playback_id} />
-                  <StreamViewTracker streamId={stream.id} isLive={stream.is_live} />
-                </>
+                <HLSPlayer playbackId={stream.playback_id} />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-dark-900">
                   <div className="text-center text-dark-400">

@@ -173,3 +173,5 @@ Para verificar que todo funciona:
 5. Sube de nivel y verifica que se desbloqueen insignias y emojis
 
 
+
+

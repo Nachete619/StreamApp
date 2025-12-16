@@ -158,3 +158,5 @@ Para verificar que todo funciona:
 - Los buckets públicos permiten acceso directo a las URLs sin autenticación
 
 
+
+

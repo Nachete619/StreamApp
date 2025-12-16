@@ -11,11 +11,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "StreamApp - Live Streaming Platform",
   description: "Live streaming platform inspired by Kick.com",
-  icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
-  },
 };
 
 export default function RootLayout({

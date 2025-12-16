@@ -57,3 +57,5 @@ export function XPDisplay({ totalXP, level, showProgress = true, size = 'md' }: 
 }
 
 
+
+

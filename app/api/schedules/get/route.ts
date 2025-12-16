@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('user_id')
     const upcoming = searchParams.get('upcoming') === 'true'
     const limit = parseInt(searchParams.get('limit') || '50')
+    const followingIdsParam = searchParams.get('following_ids')
 
     let query = (supabase
       .from('stream_schedules') as any)
@@ -30,19 +31,29 @@ export async function GET(request: NextRequest) {
       .order('scheduled_start', { ascending: true })
       .limit(limit)
 
+    // Si se proporcionan IDs de usuarios seguidos, filtrar por ellos
+    if (followingIdsParam) {
+      const followingIds = followingIdsParam.split(',').filter(id => id.trim() !== '')
+      if (followingIds.length > 0) {
+        query = query.in('user_id', followingIds)
+      } else {
+        // Si no hay IDs válidos, retornar array vacío
+        return NextResponse.json({
+          success: true,
+          schedules: [],
+        })
+      }
+    }
+
     // If userId is provided, show all schedules for that user (including past ones if not upcoming filter)
     // Otherwise, only show upcoming schedules
-    if (!userId && upcoming) {
-      const now = new Date().toISOString()
-      query = query.gte('scheduled_start', now)
-    } else if (userId && !upcoming) {
-      // Show all schedules for this user
-    } else if (!userId) {
-      // Default: show only upcoming for all users
+    if (userId && !upcoming) {
+      // Show all schedules for this user (no date filter)
+    } else if (upcoming || (!userId && !followingIdsParam)) {
+      // Show only upcoming schedules (when upcoming=true or when showing all users' schedules)
       const now = new Date().toISOString()
       query = query.gte('scheduled_start', now)
     }
-
 
     const { data: schedules, error } = await query
 
