@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       .order('scheduled_start', { ascending: true })
       .limit(limit)
 
-    // Si se proporcionan IDs de usuarios seguidos, filtrar por ellos
+    // Si se proporcionan IDs de usuarios seguidos, filtrar por ellos (tiene prioridad sobre userId)
     if (followingIdsParam) {
       const followingIds = followingIdsParam.split(',').filter(id => id.trim() !== '')
       if (followingIds.length > 0) {
@@ -43,17 +43,24 @@ export async function GET(request: NextRequest) {
           schedules: [],
         })
       }
+    } else if (userId) {
+      // Si se proporciona userId (y no hay followingIdsParam), filtrar por ese usuario
+      query = query.eq('user_id', userId)
     }
 
-    // If userId is provided, show all schedules for that user (including past ones if not upcoming filter)
-    // Otherwise, only show upcoming schedules
-    if (userId && !upcoming) {
-      // Show all schedules for this user (no date filter)
-    } else if (upcoming || (!userId && !followingIdsParam)) {
-      // Show only upcoming schedules (when upcoming=true or when showing all users' schedules)
+    // Aplicar filtro de fecha según el parámetro upcoming
+    // Si upcoming=true, solo mostrar schedules futuros
+    // Si upcoming=false y hay userId, mostrar todos (incluyendo pasados)
+    // Si no hay userId ni followingIds, por defecto mostrar solo futuros
+    if (upcoming) {
+      const now = new Date().toISOString()
+      query = query.gte('scheduled_start', now)
+    } else if (!userId && !followingIdsParam) {
+      // Si no hay filtro de usuario, por defecto mostrar solo futuros
       const now = new Date().toISOString()
       query = query.gte('scheduled_start', now)
     }
+    // Si upcoming=false y hay userId, no aplicar filtro de fecha (mostrar todos)
 
     const { data: schedules, error } = await query
 

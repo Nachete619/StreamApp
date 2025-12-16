@@ -19,7 +19,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { schedule_id, ...updates } = body
+    const { schedule_id, scheduled_start, scheduled_end, ...otherUpdates } = body
 
     if (!schedule_id) {
       return NextResponse.json(
@@ -49,12 +49,60 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    // Convert dates if provided
+    const updateData: any = { ...otherUpdates }
+    
+    if (scheduled_start) {
+      let startDate: Date
+      if (scheduled_start.includes('T') && !scheduled_start.includes('Z') && !scheduled_start.includes('+')) {
+        startDate = new Date(scheduled_start)
+      } else {
+        startDate = new Date(scheduled_start)
+      }
+      
+      if (isNaN(startDate.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid scheduled_start date' },
+          { status: 400 }
+        )
+      }
+      updateData.scheduled_start = startDate.toISOString()
+    }
+
+    if (scheduled_end !== undefined) {
+      if (scheduled_end) {
+        let endDate: Date
+        if (scheduled_end.includes('T') && !scheduled_end.includes('Z') && !scheduled_end.includes('+')) {
+          endDate = new Date(scheduled_end)
+        } else {
+          endDate = new Date(scheduled_end)
+        }
+        
+        if (isNaN(endDate.getTime())) {
+          return NextResponse.json(
+            { error: 'Invalid scheduled_end date' },
+            { status: 400 }
+          )
+        }
+        updateData.scheduled_end = endDate.toISOString()
+      } else {
+        updateData.scheduled_end = null
+      }
+    }
+
     // Update schedule
     const { data: schedule, error: updateError } = await (supabase
       .from('stream_schedules') as any)
-      .update(updates)
+      .update(updateData)
       .eq('id', schedule_id)
-      .select()
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          username,
+          avatar_url
+        )
+      `)
       .single()
 
     if (updateError) {

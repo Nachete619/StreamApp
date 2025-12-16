@@ -45,9 +45,11 @@ export function ScheduleManager({ userId, isOwn = false }: ScheduleManagerProps)
         setSchedules(data.schedules || [])
       } else {
         console.error('Error in response:', data)
+        toast.error(data.error || 'Error al cargar schedules')
       }
     } catch (error) {
       console.error('Error fetching schedules:', error)
+      toast.error('Error al cargar schedules')
     } finally {
       setLoading(false)
     }

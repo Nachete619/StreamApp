@@ -37,9 +37,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate dates
-    const startDate = new Date(scheduled_start)
-    const endDate = scheduled_end ? new Date(scheduled_end) : null
+    // Validate and convert dates
+    // datetime-local format: "YYYY-MM-DDTHH:mm" (no timezone)
+    // Convert to ISO string with timezone
+    let startDate: Date
+    let endDate: Date | null = null
+    
+    // If scheduled_start doesn't have timezone info, treat it as local time
+    if (scheduled_start.includes('T') && !scheduled_start.includes('Z') && !scheduled_start.includes('+')) {
+      // It's a datetime-local format, convert to ISO with timezone
+      startDate = new Date(scheduled_start)
+    } else {
+      startDate = new Date(scheduled_start)
+    }
 
     if (isNaN(startDate.getTime())) {
       return NextResponse.json(
@@ -48,12 +58,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (endDate && (isNaN(endDate.getTime()) || endDate <= startDate)) {
-      return NextResponse.json(
-        { error: 'Invalid scheduled_end date' },
-        { status: 400 }
-      )
+    if (scheduled_end) {
+      if (scheduled_end.includes('T') && !scheduled_end.includes('Z') && !scheduled_end.includes('+')) {
+        endDate = new Date(scheduled_end)
+      } else {
+        endDate = new Date(scheduled_end)
+      }
+
+      if (isNaN(endDate.getTime()) || endDate <= startDate) {
+        return NextResponse.json(
+          { error: 'Invalid scheduled_end date' },
+          { status: 400 }
+        )
+      }
     }
+
+    // Convert to ISO strings for database storage
+    const scheduledStartISO = startDate.toISOString()
+    const scheduledEndISO = endDate ? endDate.toISOString() : null
 
     // Create schedule
     const { data: schedule, error: insertError } = await (supabase
@@ -63,14 +85,21 @@ export async function POST(request: NextRequest) {
         stream_id: stream_id || null,
         title,
         description: description || null,
-        scheduled_start: scheduled_start,
-        scheduled_end: scheduled_end || null,
+        scheduled_start: scheduledStartISO,
+        scheduled_end: scheduledEndISO,
         is_recurring,
         recurring_pattern: recurring_pattern || null,
         timezone,
         is_active: true,
       })
-      .select()
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          username,
+          avatar_url
+        )
+      `)
       .single()
 
     if (insertError) {
