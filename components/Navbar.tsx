@@ -7,6 +7,71 @@ import { Search, User, LogOut, Radio, Settings, ChevronDown, Bell } from 'lucide
 import { createClient } from '@/lib/supabase/client'
 import { useState, useRef, useEffect } from 'react'
 
+function NotificationBadge() {
+  const { user } = useAuth()
+  const [unreadCount, setUnreadCount] = useState(0)
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (!user) return
+
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch('/api/notifications/get')
+        const data = await response.json()
+        if (data.success) {
+          setUnreadCount(data.unread_count || 0)
+        }
+      } catch (error) {
+        console.error('Error fetching unread count:', error)
+      }
+    }
+
+    fetchUnreadCount()
+
+    // Subscribe to new notifications
+    const channel = supabase
+      .channel('notifications-badge')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchUnreadCount()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchUnreadCount()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user, supabase])
+
+  if (unreadCount === 0) return null
+
+  return (
+    <span className="absolute top-1 right-1 w-5 h-5 bg-accent-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+      {unreadCount > 9 ? '9+' : unreadCount}
+    </span>
+  )
+}
+
 export function Navbar() {
   const { user, loading } = useAuth()
   const pathname = usePathname()
@@ -81,10 +146,13 @@ export function Navbar() {
                 </Link>
 
                 {/* Notifications */}
-                <button className="relative p-2 rounded-lg hover:bg-dark-800 text-dark-400 hover:text-dark-200 transition-colors">
+                <Link
+                  href="/notifications"
+                  className="relative p-2 rounded-lg hover:bg-dark-800 text-dark-400 hover:text-dark-200 transition-colors"
+                >
                   <Bell className="w-5 h-5" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-accent-600 rounded-full" />
-                </button>
+                  <NotificationBadge />
+                </Link>
                 
                 {/* User Menu Dropdown */}
                 <div className="relative" ref={dropdownRef}>

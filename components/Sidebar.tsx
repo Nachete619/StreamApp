@@ -15,7 +15,8 @@ import {
   User,
   Heart,
   TrendingUp,
-  Calendar
+  Calendar,
+  Bell
 } from 'lucide-react'
 import { useAuth } from './Providers'
 import { createClient } from '@/lib/supabase/client'
@@ -44,6 +45,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     { icon: Calendar, label: 'Calendarios', href: '/schedules', badge: null },
     { icon: Compass, label: 'Explorar', href: '/explore', badge: null },
   ]
+
+  // Add notifications to navigation if user is logged in
+  if (user) {
+    navigationItems.push({ icon: Bell, label: 'Notificaciones', href: '/notifications', badge: null })
+  }
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
